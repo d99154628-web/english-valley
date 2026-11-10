@@ -32,7 +32,286 @@ input{font-family:inherit}
 .row input::placeholder{color:rgba(255,255,255,.55)}
 .row input:focus{border-color:#fff;background:rgba(255,255,255,.28)}
 .bigBtn{width:100%;padding:15px;border-radius:18px;font-size:20px;background:linear-gradient(135deg,#fff,#ffd6ea);
-  color:#5b2a86;box-shadow:0 8px
+  color:#5b2a86;box-shadow:0 8px 24px rgba(255,200,230,.45);margin-top:6px;transition:transform .15s}
+.bigBtn:active{transform:scale(.97)}
+.linkRow{display:flex;justify-content:center;margin-top:14px;gap:14px}
+.tiny{background:transparent;font-size:13px;opacity:.75;text-decoration:underline}
+.tiny:hover{opacity:1}
+.err{color:#ffd1d9;text-align:center;font-size:14px;min-height:20px;margin-top:8px}
+
+/* ---------- 게임 ---------- */
+#game{background:#140f33}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#hud{position:absolute;left:0;right:0;top:0;padding:10px 14px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;z-index:5}
+#hud>*{pointer-events:auto}
+.pill{background:rgba(20,12,50,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.28);
+  border-radius:18px;padding:8px 16px}
+#roster{position:absolute;right:14px;top:58px;z-index:5;max-width:210px;max-height:46%;overflow:auto;background:rgba(30,20,70,.55);color:#fff;border-radius:14px;padding:8px 12px;font-size:12px;cursor:pointer;backdrop-filter:blur(4px)}
+#roster b{font-size:13px}
+#roster .rl{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+#roster .rl span{opacity:.75}
+#roster .rl span.same{opacity:1;color:#ffe9a8}
+#roster .rl span.me{opacity:1;color:#ffd65a;font-weight:700}
+#mapTitle{font-size:18px;line-height:1.2}
+#mapTitle small{display:block;font-size:12px;opacity:.8;margin-top:2px}
+#dots{display:flex;gap:8px;align-items:center;padding:10px 16px}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.8);background:transparent;transition:all .4s}
+.dot.on{background:#ff7d9a;border-color:#ffd0da;box-shadow:0 0 12px #ff7d9a}
+#hudR{display:flex;gap:8px}
+#dots{gap:10px}
+.lvb{font-size:15px;padding:2px 10px;border-radius:12px;background:linear-gradient(135deg,#ffe99a,#ffbf3b);color:#7a4a00;box-shadow:0 0 12px rgba(255,210,80,.6);margin-right:4px;letter-spacing:.5px}
+.gem{width:15px;height:15px;transform:rotate(45deg);border:2px solid rgba(255,255,255,.75);border-radius:3px;transition:all .4s}
+.gem.on{background:linear-gradient(135deg,#fff6b8,#ffcf3d 55%,#e59a0c);border-color:#ffe9a0;box-shadow:0 0 12px #ffd24a}
+.gem.pop{animation:gpop .7s}
+@keyframes gpop{0%{transform:rotate(45deg) scale(1)}35%{transform:rotate(225deg) scale(1.9)}100%{transform:rotate(45deg) scale(1)}}
+#lvup{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.5);text-align:center;opacity:0;pointer-events:none;z-index:9;
+  font-size:54px;letter-spacing:3px;background:linear-gradient(180deg,#fffbe0,#ffd23d 60%,#f09a0c);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 14px rgba(255,190,40,.7)) drop-shadow(0 2px 0 rgba(120,70,0,.6))}
+#lvup small{display:block;font-size:20px;letter-spacing:6px;opacity:.95;margin-bottom:2px}
+#lvup.on{animation:lvu 2s ease-out forwards}
+@keyframes lvu{0%{opacity:0;transform:translate(-50%,-30%) scale(.4)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+.ib{width:42px;height:42px;border-radius:50%;font-size:18px;background:rgba(20,12,50,.38);border:1px solid rgba(255,255,255,.28);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ib.txt{width:auto;border-radius:18px;padding:0 14px;font-size:13px}
+#prev{position:absolute;left:14px;top:74px;display:none;gap:6px;z-index:5}
+#prev.on{display:flex}
+#prev button{padding:6px 12px;border-radius:12px;background:rgba(255,255,255,.2);font-size:13px}
+#hint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);padding:12px 22px;border-radius:20px;
+  background:rgba(20,12,50,.45);backdrop-filter:blur(8px);font-size:17px;opacity:0;transition:opacity .8s;pointer-events:none;z-index:4;text-align:center}
+#hint.on{opacity:1}
+#toast{position:absolute;left:50%;top:22%;transform:translate(-50%,0);padding:12px 26px;border-radius:22px;font-size:22px;
+  background:rgba(255,255,255,.88);color:#5b2a86;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:all .5s;z-index:8}
+#toast.on{opacity:1;transform:translate(-50%,-10px)}
+
+/* ---------- 문제 ---------- */
+#qOv{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,8,45,.55);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:10;padding:14px}
+#qOv.on{display:flex;animation:fade .3s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+#qCard{width:min(760px,96vw);padding:26px 28px 22px;border-radius:28px;background:linear-gradient(160deg,rgba(255,255,255,.95),rgba(255,235,247,.93));
+  color:#3a2468;box-shadow:0 24px 70px rgba(10,0,40,.55);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.85) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+#qTag{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.chip{padding:4px 12px;border-radius:999px;font-size:13px;background:#ffd3e4;color:#a3306a}
+.chip.b{background:#d9d2ff;color:#4b3a9a}
+#qKo{font-size:15px;color:#7a6aa8;margin-bottom:6px}
+#qText{font-size:28px;line-height:1.35;margin-bottom:18px;white-space:pre-line;font-weight:700}
+#qOpts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){#qOpts{grid-template-columns:1fr}#qText{font-size:22px}}
+.opt{padding:16px 16px;border-radius:18px;background:#fff;border:3px solid #e1d6ff;font-size:21px;color:#3a2468;text-align:left;
+  display:flex;gap:10px;align-items:center;transition:all .15s;box-shadow:0 4px 0 #e1d6ff}
+.opt b{display:inline-flex;width:30px;height:30px;border-radius:50%;background:#e9e1ff;align-items:center;justify-content:center;font-size:16px;flex:none}
+.opt:hover{border-color:#b39bff;transform:translateY(-2px)}
+.opt:active{transform:translateY(2px);box-shadow:none}
+.opt.dead{opacity:.35;text-decoration:line-through;pointer-events:none;background:#f1edf8}
+#qFoot{margin-top:12px;font-size:13px;color:#8c7cb8;text-align:right;min-height:18px}
+
+/* ---------- 컷신 ---------- */
+#cut{position:absolute;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:30;flex-direction:column}
+#cut.on{display:flex}
+#cutV{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#000}
+#cutCard{position:relative;text-align:center;padding:20px;animation:fade 1.2s}
+#cutCard h1{font-size:min(9vw,56px);letter-spacing:3px;text-shadow:0 0 30px rgba(255,255,255,.7)}
+#cutCard p{font-size:min(4.4vw,20px);opacity:.9;margin-top:14px;line-height:1.7;white-space:pre-line}
+#cutCard .m{font-size:14px;letter-spacing:6px;opacity:.7;margin-bottom:10px}
+#cutSkip{position:absolute;right:18px;bottom:18px;padding:8px 16px;border-radius:14px;background:rgba(255,255,255,.2);font-size:14px;z-index:2}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20;transition:opacity 1.2s}
+
+/* ---------- 엔딩 ---------- */
+#end{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.0);z-index:25;padding:16px}
+#end.on{display:flex}
+#endCard{max-width:560px;text-align:center;padding:30px;border-radius:30px;background:rgba(255,255,255,.88);color:#3a2468;box-shadow:0 20px 60px rgba(90,60,160,.35);animation:pop .8s}
+#endCard h1{font-size:36px;margin-bottom:10px}
+#endCard p{line-height:1.8;font-size:18px;margin-bottom:6px}
+#endCard .btns{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+#endCard .btns button{padding:12px 22px;border-radius:16px;font-size:17px;background:#6c4bd1;color:#fff}
+#endCard .btns button.g{background:#e6dcff;color:#4b3a9a}
+
+/* ---------- 교사용 ---------- */
+#teacher{background:#f4f1fb;color:#2f2457;overflow:auto;user-select:text;-webkit-user-select:text}
+.tWrap{max-width:1250px;margin:0 auto;padding:20px 22px 60px}
+.tHead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.tHead h1{font-size:26px}
+.tBtns{display:flex;gap:8px;flex-wrap:wrap}
+.tb{padding:9px 16px;border-radius:12px;background:#6c4bd1;color:#fff;font-size:14px}
+.tb.g{background:#e3dbf7;color:#443083}
+.tb.r{background:#e8587a}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.sumC{background:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 4px 14px rgba(90,60,160,.1)}
+.sumC small{color:#8a7cb5;font-size:13px}
+.sumC div{font-size:28px;margin-top:2px}
+.tBox{background:#fff;border-radius:20px;padding:6px 8px;box-shadow:0 4px 14px rgba(90,60,160,.1);margin-bottom:18px;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{background:#f0eafc;color:#5a4a96;padding:9px 8px;font-weight:700;position:sticky;top:0;text-align:center}
+td{padding:7px 8px;border-bottom:1px solid #eee9f8;text-align:center;white-space:nowrap}
+td.nm{text-align:left;font-weight:700}
+.cells{display:inline-flex;gap:2px;margin:0 4px}
+.cells i{display:block;width:7px;height:20px;border-radius:3px;background:#e5dff3}
+.cells i.f{background:#4fcf9b}
+.cells i.s{background:#f6c256}
+.cells i.t{background:#f6a0a8}
+.cells.g{margin-right:9px}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;background:#e8e1fb;color:#4b3a9a}
+.badge.on{background:#cdf5e3;color:#13744b}
+.badge.fin{background:#ffe3a8;color:#8a5a00}
+.on-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ccc;margin-right:6px}
+.on-dot.y{background:#2fd08b;box-shadow:0 0 8px #2fd08b}
+.qStat{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;padding:10px}
+.qs{background:#faf8ff;border-radius:12px;padding:8px 12px;font-size:13px}
+.qs .bar{height:8px;background:#e6dff5;border-radius:6px;margin-top:6px;overflow:hidden}
+.qs .bar i{display:block;height:100%;background:linear-gradient(90deg,#7e5be0,#ff8fb8)}
+.legend{font-size:12px;color:#7a6cab;padding:6px 10px 10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin:0 4px 0 12px;vertical-align:-1px}
+#pwOv{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,10,50,.6);z-index:40}
+#pwOv.on{display:flex}
+#pwCard{background:#fff;color:#3a2468;border-radius:22px;padding:24px 26px;width:min(340px,90vw);text-align:center}
+#pwCard input{width:100%;padding:12px;font-size:22px;text-align:center;border-radius:12px;border:2px solid #cfc3f3;margin:12px 0;letter-spacing:6px}
+#pwCard .btns{display:flex;gap:8px}
+#pwCard .btns button{flex:1;padding:11px;border-radius:12px;background:#6c4bd1;color:#fff;font-size:16px}
+#pwCard .btns button.g{background:#e3dbf7;color:#443083}
+#pwErr{color:#d6385f;font-size:13px;min-height:18px}
+
+#trans{position:fixed;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;pointer-events:none;overflow:hidden}
+#trans.on{display:flex}
+#trV{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;display:none}
+#trans.vid #trV{display:block}
+#trans.vid #trS{display:none}
+#trans.vid::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(10,5,40,.35),rgba(10,5,40,.1) 70%);z-index:-1}
+#cut.vid #cutCard{position:absolute;left:0;right:0;bottom:11%;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+#trans.in{animation:trIn .85s cubic-bezier(.6,0,.3,1) forwards}
+#trans.out{animation:trOut .8s ease-in forwards}
+@keyframes trIn{from{clip-path:circle(0% at 50% 55%)}to{clip-path:circle(150% at 50% 55%)}}
+@keyframes trOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.08)}}
+#trM{font-size:20px;letter-spacing:6px;opacity:0;animation:trTx .7s .5s forwards}
+#trH{font-size:min(10vw,64px);margin:6px 0;text-shadow:0 0 30px rgba(255,255,255,.6);opacity:0;animation:trTx .8s .65s forwards}
+#trP{font-size:20px;opacity:0;animation:trTx .8s .85s forwards}
+#trans.out #trM,#trans.out #trH,#trans.out #trP{animation:none;opacity:1}
+@keyframes trTx{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+#trS i{position:absolute;font-style:normal;color:#fff;opacity:0;animation:trSt 2s infinite}
+@keyframes trSt{0%{opacity:0;transform:translateY(10px) scale(.6)}50%{opacity:.9}100%{opacity:0;transform:translateY(-24px) scale(1.1)}}
+#scn{position:fixed;inset:0;z-index:40;display:none;background:#0b0726}
+#scn.on{display:block}
+#scn canvas{width:100%;height:100%;display:block}
+#scnSkip{position:absolute;right:18px;bottom:18px;padding:8px 16px;border-radius:14px;background:rgba(255,255,255,.2);color:#fff;font-size:14px}
+/* Keep the world visible while answering. */
+#qOv{background:rgba(15,8,45,.12);backdrop-filter:none;-webkit-backdrop-filter:none;justify-content:flex-end;padding:24px}
+#qCard{width:min(480px,94vw);max-height:85vh;overflow:auto;padding:22px}
+#qText{font-size:24px} .opt{font-size:18px;padding:12px}
+#hint{width:max-content;max-width:92vw;font-size:15px}
+#cv{cursor:pointer}
+@media(max-width:650px){#qOv{align-items:flex-end;padding:10px}#qCard{width:100%;max-height:64vh}#qOpts{grid-template-columns:1fr 1fr}.opt{font-size:16px;padding:10px}#qText{font-size:20px}#mapTitle{font-size:14px}#dots{gap:5px;padding:10px}.gem{width:10px;height:10px}#roster{max-width:150px}}
+</style>
+</head>
+<body>
+
+<!-- ================= 로그인 ================= -->
+<div id="login" class="screen on">
+  <div class="orb" style="width:340px;height:340px;background:#8be3d0;left:-80px;top:-60px"></div>
+  <div class="orb" style="width:420px;height:420px;background:#ff9ec6;right:-120px;bottom:-100px;animation-delay:-5s"></div>
+  <div class="orb" style="width:260px;height:260px;background:#a89bff;right:20%;top:8%;animation-delay:-9s"></div>
+  <div class="loginWrap">
+    <div class="card">
+      <div class="logo">English Valley</div>
+      <div class="logoSub">물음표를 찾아 영어 문제를 풀고,<br>하얀 새가 되어 날아가 보세요 ✦</div>
+      <div class="row">
+        <label>반<input id="inBan" type="number" inputmode="numeric" min="1" max="30" placeholder="예: 3"></label>
+        <label>번호<input id="inNum" type="number" inputmode="numeric" min="1" max="60" placeholder="예: 12"></label>
+      </div>
+      <div class="row"><label>이름<input id="inName" type="text" maxlength="10" placeholder="이름을 써 주세요" autocomplete="off"></label></div>
+      <button class="bigBtn" id="btnStart">여행 시작하기</button>
+      <div class="err" id="loginErr"></div>
+      <div class="linkRow"><button class="tiny" id="btnToTeacher">교사용</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 게임 ================= -->
+<div id="game" class="screen">
+  <canvas id="cv"></canvas>
+  <div id="roster" style="display:none"></div>
+  <div id="hud">
+    <div class="pill" id="mapTitle">MAP 1<small>새벽의 정원</small></div>
+    <div class="pill" id="dots"></div>
+    <div id="hudR">
+      <button class="ib" id="btnSnd" title="소리">🔊</button>
+      <button class="ib txt" id="btnTeacherG">교사용</button>
+      <button class="ib" id="btnHome" title="처음으로">⌂</button>
+    </div>
+  </div>
+  <div id="prev"></div>
+  <div id="hint"></div>
+  <div id="toast"></div>
+  <div id="lvup"><small>LEVEL UP!</small><span id="lvupN">Lv 2</span></div>
+  <div id="flash"></div>
+</div>
+
+<div id="qOv">
+  <div id="qCard">
+    <div id="qTag"><span class="chip" id="qLesson"></span><span class="chip b" id="qNo"></span></div>
+    <div id="qKo"></div>
+    <div id="qText"></div>
+    <div id="qOpts"></div>
+    <div id="qFoot"></div>
+  </div>
+</div>
+
+<div id="cut">
+  <video id="cutV" playsinline></video>
+  <div id="cutCard"><div class="m" id="cutM"></div><h1 id="cutH"></h1><p id="cutP"></p></div>
+  <button id="cutSkip">건너뛰기 ›</button>
+</div>
+
+<div id="end">
+  <div id="endCard">
+    <h1>하얀 새가 되었어요 ✦</h1>
+    <p id="endP"></p>
+    <div class="btns"><button id="btnEndHome">처음으로</button><button class="g" id="btnEndAgain">엔딩 다시 보기</button></div>
+  </div>
+</div>
+
+<!-- ================= 교사용 ================= -->
+<div id="teacher" class="screen">
+  <div class="tWrap">
+    <div class="tHead">
+      <h1>🌙 English Valley · 학생 진행 현황</h1>
+      <div class="tBtns">
+        <button class="tb g" id="tRefresh">새로고침</button>
+        <button class="tb g" id="tCsv">CSV 내려받기</button>
+        <button class="tb" id="tPreview">게임 체험하기 (기록 안 함)</button>
+        <button class="tb g" id="tToStudent">학생 화면 바로가기</button>
+        <button class="tb r" id="tReset">전체 초기화</button>
+      </div>
+    </div>
+    <div class="sum" id="tSum"></div>
+    <div class="tBox">
+      <div class="legend">진행 칸:<i style="background:#4fcf9b"></i>첫 시도 정답<i style="background:#f6c256"></i>틀린 뒤 정답<i style="background:#f6a0a8"></i>풀이 중(오답)<i style="background:#e5dff3"></i>아직 안 함 · 5칸씩 맵 1~5</div>
+      <table><thead><tr><th>상태</th><th>반</th><th>번호</th><th>이름</th><th>현재 맵</th><th>25문제 진행</th><th>해결</th><th>오답</th><th>최근 접속</th><th></th></tr></thead><tbody id="tBody"></tbody></table>
+    </div>
+    <div class="tBox"><div class="legend" style="font-size:14px;color:#5a4a96"><b>문항별 첫 시도 정답률</b> (푼 학생 기준)</div><div class="qStat" id="tQ"></div></div>
+  </div>
+</div>
+
+<div id="pwOv"><div id="pwCard"><b style="font-size:19px">교사용 비밀번호</b><input id="pwIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><div id="pwErr"></div><div class="btns"><button class="g" id="pwCancel">취소</button><button id="pwOk">확인</button></div></div></div>
+
+<div id="trans"><video id="trV" muted playsinline preload="auto"></video><div id="trS"></div><div id="trM"></div><h1 id="trH"></h1><div id="trP"></div></div>
+<div id="scn"><canvas id="scnCv"></canvas><button id="scnSkip">건너뛰기 ›</button></div>
+<script>
+'use strict';
+/* =====================================================================
+   English Valley — 모뉴먼트 밸리 스타일 영어 퀴즈 게임
+   ① MEDIA : 구글 플로우(Veo)로 만든 영상 주소를 넣는 곳
+   ② QUESTIONS : 25문제(맵 5개 × 5문제) — 여기서 바로 수정 가능
+   ===================================================================== */
+
+/* ---------- ① 영상(컷신) 설정 : 비워 두면 글자 카드로 대신 나옵니다 ---------- */
+const MEDIA = {
+  intro: 'https://d99154628-web.github.io/english-valley/media/intro.mp4',                         // 처음 시작할 때 영상 (mp4 주소)
+  mapIntro: ['', '', '', '', '', '', '', '', '', ''],    // 맵 1~5 시작 전에 나오는 영상
+  trans: 'https://d99154628-web.github.io/english-valley/media/trans.mp4',
+  ending: 'https://d99154628-web.github.io/english-valley/media/outro.mp4'                         // 하얀 새가 날아간 뒤 영상
+};
+
+/* ---------- ② 문제 : 맵당 5문제, 6학년 영어 1~10단원 ---------- */
 const QUESTIONS = [
  /* ── MAP 1 : Lesson 1 ── */
  {u:1, ko:'질문에 알맞은 대답을 고르세요.', q:'What grade are you in?', o:["I'm in the sixth grade.","It's on May 7th.","He has blue eyes.","Once a day."], a:0},
