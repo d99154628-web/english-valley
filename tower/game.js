@@ -138,9 +138,17 @@ function buildZone(seed, z) {
   }
   const rI = mulberry32(hash(seed, z, 0x7f4a7c15)), items = [], mains = plats.filter((q) => q.kind === 'main');
   if (mains.length > 7) {
-    const pb = mains[2 + Math.floor(rI() * 3)]; items.push({ id: z + 'b', k: 'b', x: pb.x + pb.w / 2, y: pb.y - 64 });   // 🎈 풍선
-    if (rI() < 0.8) { const pe = mains[6 + Math.floor(rI() * (mains.length - 6))]; items.push({ id: z + 'e', k: 'e', x: pe.x + pe.w / 2, y: pe.y - 64 }); }   // 🥚 새 알
+    const rb = rI(), re = rI(), pb = mains[2 + Math.floor(rI() * 3)];
+    if (rb < 0.4) items.push({ id: z + 'b', k: 'b', x: pb.x + pb.w / 2, y: pb.y - 64 });   // 🎈 풍선: 구역 10개 중 4개쯤
+    if (re < 0.3) { const pe = mains[6 + Math.floor(rI() * (mains.length - 6))]; items.push({ id: z + 'e', k: 'e', x: pe.x + pe.w / 2, y: pe.y - 64 }); }   // 🥚 새 알
   }
+  const rM = mulberry32(hash(seed, z, 0x3c6ef372));
+  mains.forEach((pl, i) => {   // 좌우로 움직이는 판 (선물·스프링·아이템이 없는 판 중 일부)
+    const a = rM(), b = rM(), c = rM();
+    if (i < 2 || a > 0.5 || gifts.some((q) => q.y + 18 === pl.y) || springs.some((q) => q.y === pl.y) || items.some((q) => q.y + 64 === pl.y)) return;
+    const r = Math.min(40 + b * 40, pl.x - 8, W - 8 - (pl.x + pl.w)); if (r < 28) return;
+    pl.mv = { r, sp: 0.8 + c * 0.7, ph: (i * 1.7 + z) % 6.283, x0: pl.x };
+  });
   const out = { z, plats, gifts, springs, items, cp: { x: cx0, y: cy0 } };
   if (zoneCache.size > 200) zoneCache.clear(); zoneCache.set(key, out); return out;
 }
@@ -310,6 +318,7 @@ const motes = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.
 /* ---------- 네트워크 ---------- */
 const Net = { offset: 0, rtt: 1e9, me: null, round: -1, s: { status: 'lobby', round: 0, seed: 1, duration: 300, startAt: 0, endsAt: 0 }, friends: new Map(), n: 1, pending: false, rank: null, ok: true, fails: 0 };
 const serverNow = () => Date.now() + Net.offset;
+const platX = (pl) => (pl.mv ? pl.mv.x0 + Math.sin(serverNow() / 1000 * pl.mv.sp + pl.mv.ph) * pl.mv.r : pl.x);
 async function post(body, timeout) {
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), timeout || 9000);
   try { const r = await fetch(API, { method: 'POST', body: JSON.stringify(body), signal: ctl.signal }); return await r.json(); }
@@ -500,6 +509,7 @@ class Scene {
     p.vx = ix * PHYS.speed;
     if (ix) p.flip = ix < 0;
     const t = performance.now();
+    if (this.ridePl && this.wasGround && !this.frozen) { const nx = platX(this.ridePl); if (this.rideX !== undefined) p.x += nx - this.rideX; this.rideX = nx; if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W; } else { this.rideX = undefined; if (!this.wasGround) this.ridePl = null; }
     if (!this.frozen) {
       if (Scene.jumpPressed) { this.jumpBuf = Scene.jumpPressed; Scene.jumpPressed = 0; }
       if (t - this.jumpBuf < 120 && !this.bal && !(this.wing && this.wing.t < 1.5)) {
@@ -531,7 +541,8 @@ class Scene {
       for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) {
         const Z = buildZone(Net.s.seed, zz);
         if (p.vy >= 0) for (const pl of Z.plats) {
-          if (py <= pl.y + 5 && p.y >= pl.y && p.x + 15 > pl.x && p.x - 15 < pl.x + pl.w) { p.y = pl.y; p.vy = 0; p.ground = true; }
+          const px = platX(pl);
+          if (py <= pl.y + 5 && p.y >= pl.y && p.x + 15 > px && p.x - 15 < px + pl.w) { p.y = pl.y; p.vy = 0; p.ground = true; this.ridePl = pl.mv ? pl : null; }
         }
         for (const sp of Z.springs) if (p.vy >= 0 && Math.abs(p.x - sp.x) < 18 && p.y >= sp.y - 10 && py <= sp.y + 4 && !this.frozen) { p.vy = -PHYS.spring; this.jumps = 1; this.coyote = -1e9; sp.t = this.t; this.bs = 0.15; this.bv = 11; sfx('boing'); this.burst(sp.x, sp.y - 6, 10); }
       }
@@ -573,9 +584,9 @@ class Scene {
       sfx('whoosh'); this.fallFx = 1; this.whooshed = true; this.toast('슈웅~ 바닥까지!', 1500); p.vx = 0; p.anim = 3;
     }
   }
-  platBelow(d) {
+  platBelow(d) {   
     const p = this.p, z = zoneOf(p.y);
-    for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) for (const pl of buildZone(Net.s.seed, zz).plats) if (pl.y >= p.y && pl.y - p.y < d && p.x + 15 > pl.x && p.x - 15 < pl.x + pl.w) return true;
+    for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) for (const pl of buildZone(Net.s.seed, zz).plats) if (pl.y >= p.y && pl.y - p.y < d && p.x + 15 > platX(pl) && p.x - 15 < platX(pl) + pl.w) return true;
     return false;
   }
   stepPlummet(dt) {
@@ -649,7 +660,7 @@ class Scene {
     const z0 = zoneOf(cam + 270);
     for (let zz = Math.max(0, z0 - 1); zz <= z0 + 1; zz++) {
       const Z = buildZone(s.seed, zz);
-      for (const pl of Z.plats) if (pl.y > cam - 60 && pl.y < cam + H + 60) this.drawPlat(g, pl, zz);
+      for (const pl of Z.plats) if (pl.y > cam - 60 && pl.y < cam + H + 60) this.drawPlat(g, pl.mv ? { ...pl, x: platX(pl) } : pl, zz);
       for (const sp of Z.springs) if (sp.y > cam - 60 && sp.y < cam + H + 60) this.drawSpring(g, sp);
       for (const it of Z.items) if (it.y > cam - 60 && it.y < cam + H + 60 && !(this.taken.get(it.id) > performance.now())) this.drawItem(g, it);
       for (const gf of Z.gifts) if (gf.y > cam - 60 && gf.y < cam + H + 60 && !(this.gifts.get(gf.id) > performance.now())) this.drawGift(g, gf);
@@ -736,6 +747,10 @@ class Scene {
     g.fillStyle = fill; this.rr(g, pl.x + 1.5, pl.y + 1.5, pl.w - 3, h - 5, 8); g.fill();
     g.fillStyle = 'rgba(255,255,255,.75)'; this.rr(g, pl.x + 7, pl.y + 3, pl.w - 14, 4, 2); g.fill();
     g.fillStyle = 'rgba(255,255,255,.4)'; for (let x = pl.x + 22; x < pl.x + pl.w - 10; x += 26) { g.beginPath(); g.arc(x, pl.y + 12, 2.2, 0, 7); g.fill(); }
+    if (pl.mv) {   // 움직이는 판 표시: 양옆 화살표
+      g.fillStyle = 'rgba(255,255,255,.9)'; g.strokeStyle = edge; g.lineWidth = 1.5;
+      [[pl.x + 9, -1], [pl.x + pl.w - 9, 1]].forEach(([ax, d]) => { g.beginPath(); g.moveTo(ax + d * 4, pl.y + 9); g.lineTo(ax - d * 3, pl.y + 4.5); g.lineTo(ax - d * 3, pl.y + 13.5); g.closePath(); g.fill(); g.stroke(); });
+    }
     if (pl.kind === 'cp') {   // 구역 시작 표시 깃발
       const x = pl.x + 22; g.fillStyle = '#7a62c8'; g.fillRect(x, pl.y - 44, 3, 44); g.fillStyle = '#ff8fb0'; g.beginPath(); g.moveTo(x + 3, pl.y - 44); g.lineTo(x + 40, pl.y - 34); g.lineTo(x + 3, pl.y - 24); g.fill();
       this.label(g, '⛰ ' + heightOf(pl.y - 30) + 'm', pl.x + pl.w / 2 + 14, pl.y - 26, '#fff3a8');
