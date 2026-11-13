@@ -187,8 +187,9 @@ const SPECIES = [   // 동글동글 말랑 친구들: 색 3가지 × (무늬 없
   { n: 'pig', cols: ['#ffc2d2', '#ffdce8', '#f8b4e0', '#ffe2a8', '#d4c4ff'], patch: ['#ff90ae', '#f4a8c4', '#e88ac8', '#f0b050', '#a58ae0'] },
   { n: 'mouse', cols: ['#e6e6f2', '#fbe0d0', '#d6e8ff', '#ffd4e8', '#d4f5d0'], patch: ['#b4b4cc', '#eab8a0', '#a8c8f0', '#f09ac4', '#8fcf88'] },
 ];
-const NSKIN = 86, JELLY0 = 50;   // 50~85 = 젤리 친구들(이미지)
+const NSKIN = 138, JELLY0 = 50;   // 50~85 = 젤리 시트1, 86~137 = 젤리 시트2(모자)
 const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; SHEET.src = 'chars.png?v=1';
+const SHEET2 = new Image(); SHEET2.onload = () => { sheetOk2 = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; let sheetOk2 = false; SHEET2.src = 'chars2.png?v=1';
 const OUT = '#8a5646';
 const hasJong = (n) => { const c = String(n).charCodeAt(String(n).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0; };
 const iga = (n) => n + (hasJong(n) ? '이' : '가'), eulreul = (n) => n + (hasJong(n) ? '을' : '를');
@@ -199,8 +200,8 @@ function shade(hex, a) {   // 색을 밝게(+)/어둡게(-)
   return (SH[k] = `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`);
 }
 function drawJelly(g, skin, x, y, o) {
-  if (!sheetOk) return;
-  const k = skin - JELLY0, s = o.scale || 1.35, t = o.t, run = o.anim === 1;
+  const two = skin >= 86; if (two ? !sheetOk2 : !sheetOk) return;
+  const k = two ? skin - 86 : skin - JELLY0, cols = two ? 8 : 6, s = o.scale || 1.35, t = o.t, run = o.anim === 1;
   let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.03;
   if (run) { sx = 1 + Math.sin(t * 16) * 0.05; sy = 1 - Math.sin(t * 16) * 0.07; }
   const bs = o.bs || 0, bv = o.bv || 0; sy *= 1 + bs; sx *= 1 - bs * 0.8;
@@ -208,11 +209,12 @@ function drawJelly(g, skin, x, y, o) {
   g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s, s);
   g.transform(1, 0, Math.max(-0.35, Math.min(0.35, bv * 0.02)), 1, 0, 0); g.scale(sx, sy);
   if (o.anim === 2) g.rotate(Math.sin(t * 14) * 0.08);
-  g.drawImage(SHEET, (k % 6) * 128, ((k / 6) | 0) * 128, 128, 128, -D / 2, -D + 2, D, D);
+  g.drawImage(two ? SHEET2 : SHEET, (k % cols) * 128, ((k / cols) | 0) * 128, 128, 128, -D / 2, -D + 2, D, D);
   g.restore();
 }
 function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, flip, scale, anim, bs, bv}
-  if (skin >= JELLY0) return drawJelly(g, skin, x, y, o);
+  if (skin < JELLY0) skin = JELLY0 + (skin % 36);   // 예전 캐릭터 번호는 젤리로 대체
+  return drawJelly(g, skin, x, y, o);
   const sp = SPECIES[skin % 10], v = Math.floor(skin / 10) % 5, col = sp.cols[v], pc = sp.patch[v], n = sp.n, pv = v === 3 ? 1 : v === 4 ? 2 : v;
   const s = o.scale || 1.35, t = o.t, run = o.anim === 1;
   let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.03;
@@ -380,13 +382,13 @@ const Shop = {   // 코인·구매한 캐릭터·꼬리 효과 (이 크롬북에
   coins: 0, owned: new Set(), trails: new Set(), trail: 0, dirty: false, free: new URLSearchParams(location.search).has('unlock'),
   load() { try { const o = JSON.parse(localStorage.getItem('et_shop') || '{}'); this.coins = o.coins | 0; this.owned = new Set(o.owned || []); this.trails = new Set(o.trails || []); this.trail = o.trail | 0; } catch (e) {} if (Number.isInteger(profile.skin) && profile.skin >= 10) this.owned.add(profile.skin); },
   save() { try { localStorage.setItem('et_shop', JSON.stringify({ coins: this.coins, owned: [...this.owned], trails: [...this.trails], trail: this.trail })); } catch (e) {} },
-  price(i) { return i >= JELLY0 ? (i < 60 ? 0 : i < 70 ? 30 : 50) : [0, 30, 50, 70, 90][Math.floor(i / 10) % 5]; },
-  has(i) { return this.free || i < 10 || (i >= JELLY0 && i < 60) || this.owned.has(i); },
+  price(i) { return i >= JELLY0 ? 0 : [0, 30, 50, 70, 90][Math.floor(i / 10) % 5]; },
+  has(i) { return true; },
   add(n) { this.coins += n; this.dirty = true; },
   flush() { if (this.dirty) { this.dirty = false; this.save(); } },
 };
 Shop.load();
-let skin = Number.isInteger(profile.skin) && profile.skin < NSKIN && Shop.has(profile.skin) ? profile.skin : JELLY0 + Math.floor(Math.random() * 10);
+let skin = Number.isInteger(profile.skin) && profile.skin >= JELLY0 && profile.skin < NSKIN ? profile.skin : JELLY0 + Math.floor(Math.random() * (NSKIN - JELLY0));
 $('nameInput').value = profile.name || '';
 const grid = $('skinGrid');
 let buyArm = -1;
@@ -398,7 +400,7 @@ function refreshShop() {
   [...$('teamRow').children].forEach((b) => b.classList.toggle('sel', +b.dataset.k === (profile.team | 0)));
 }
 const armBuy = (id, text) => { buyArm = id; setMsg(text); sfx('pop'); setTimeout(() => { if (buyArm === id) { buyArm = -1; setMsg(''); } }, 3500); };
-const SKORDER = []; for (let i = JELLY0; i < NSKIN; i++) SKORDER.push(i); for (let i = 0; i < JELLY0; i++) SKORDER.push(i);
+const SKORDER = []; for (let i = JELLY0; i < NSKIN; i++) SKORDER.push(i);
 function refreshPreviews() { [...grid.children].forEach((b) => previewSkin(b.querySelector('canvas'), +b.dataset.i)); }
 for (const i of SKORDER) {
   const b = document.createElement('button'); b.className = 'skin'; b.type = 'button'; b.dataset.i = i;
