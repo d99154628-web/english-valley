@@ -112,7 +112,8 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, fl
   const s = o.scale || 1.3, t = o.t, run = o.anim === 1;
   let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.025;
   if (run) { sx = 1 + Math.sin(t * 16) * 0.05; sy = 1 - Math.sin(t * 16) * 0.07; }
-  if (o.anim === 2) { sx = 0.9; sy = 1.14; } else if (o.anim === 3) { sx = 1.07; sy = 0.93; }
+  if (o.bs !== undefined) { sy *= 1 + o.bs; sx *= 1 - o.bs * 0.75; }
+  else if (o.anim === 2) { sx = 0.9; sy = 1.14; } else if (o.anim === 3) { sx = 1.07; sy = 0.93; }
   const hop = run ? Math.abs(Math.sin(t * 8)) * 3 : 0;
   g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s * sx, s * sy);
   g.lineJoin = 'round'; g.lineWidth = 1.6; g.strokeStyle = line;
@@ -130,7 +131,7 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, fl
   if (n === 'frog') { ell(-9, -30, 6.5, 6.5, col); ell(9, -30, 6.5, 6.5, col); }
   // 몸 (동글동글 말랑)
   const grd = g.createRadialGradient(-6, -24, 3, 0, -15, 22); grd.addColorStop(0, shade(col, 1.08)); grd.addColorStop(1, col);
-  g.beginPath(); g.ellipse(0, -15, 18, 15, 0, 0, 7); g.fillStyle = grd; g.fill(); g.stroke();
+  g.beginPath(); g.ellipse(0, -15.5, 19.5, 16, 0, 0, 7); g.fillStyle = grd; g.fill(); g.stroke();
   // 배 / 무늬
   if (n === 'penguin') { ell(0, -11, 11, 11, '#ffffff'); }
   else if (n === 'panda') { ell(-10, -14, 5, 6, '#3a3a48', 0.2); ell(10, -14, 5, 6, '#3a3a48', -0.2); g.lineWidth = 0; ell(0, -9, 10, 8, '#ffffff'); g.lineWidth = 1.6; }
@@ -378,7 +379,7 @@ class Scene {
     this.energy = 100; this.best = 0; this.correct = 0; this.jumps = 0; this.coyote = -1e9; this.jumpBuf = -1e9; this.lastGroundY = 0; this.safeZ = 0;
     this.trail = []; this.sq = 0; this.trailAt = 0; this.lastQuizAt = 0; this.quizBusy = false;
     this.gifts = new Map(); this.freeze = false; this.countN = null; this.hudAt = 0; this.toastT = null; this.lastStatus = 'lobby';
-    this.wasGround = false; this.prevVy = 0; this.shake = 0; this.puffs = [];
+    this.wasGround = false; this.prevVy = 0; this.shake = 0; this.puffs = []; this.bs = 0; this.bv = 0; this.fallFx = 0; this.whooshed = false;
   }
   start() {
     this.started = true; this.last = performance.now();
@@ -417,6 +418,8 @@ class Scene {
       if (!this.quizBusy && now - this.lastQuizAt > GAME.quizEvery * 1000) this.openQuiz('⏰ 퀴즈 타임!');
     }
     if (now - this.trailAt > 300) { this.trailAt = now; this.sq++; this.trail.push([Math.round(this.p.x), Math.round(this.p.y), this.p.anim, this.p.flip ? 1 : 0]); if (this.trail.length > 20) this.trail.shift(); }
+    this.bv += (-this.bs * 240 - this.bv * 9) * dt; this.bs += this.bv * dt; if (Math.abs(this.bs) < 0.002 && Math.abs(this.bv) < 0.05) { this.bs = 0; this.bv = 0; }
+    if (this.p.vy > 520 && !this.p.ground) this.fallFx = Math.min(1, this.fallFx + dt * 6); else this.fallFx = Math.max(0, this.fallFx - dt * 5);
     this.updateFriends(dt);
     this.camY += (Math.min(this.p.y - 330, -460) - this.camY) * Math.min(1, dt * 7);
     this.render();
@@ -433,9 +436,9 @@ class Scene {
     if (!this.frozen) {
       if (Scene.jumpPressed) { this.jumpBuf = Scene.jumpPressed; Scene.jumpPressed = 0; }
       if (t - this.jumpBuf < 120) {
-        if (t - this.coyote < 90 && this.jumps === 0) { p.vy = -PHYS.jump; this.jumps = 1; this.jumpBuf = -1e9; this.coyote = -1e9; sfx('jump'); }
+        if (t - this.coyote < 90 && this.jumps === 0) { p.vy = -PHYS.jump; this.jumps = 1; this.jumpBuf = -1e9; this.coyote = -1e9; sfx('jump'); this.bs = -0.28; this.bv = 7.5; }
         else if (this.jumps < 2 && !p.ground) {
-          { p.vy = -PHYS.djump; this.jumps = 2; this.jumpBuf = -1e9; sfx('djump'); this.burst(p.x, p.y + 4, 8); }
+          { p.vy = -PHYS.djump; this.jumps = 2; this.jumpBuf = -1e9; sfx('djump'); this.bs = -0.2; this.bv = 7; this.burst(p.x, p.y + 4, 8); }
         }
       }
       if (Scene.jumpReleased && p.vy < -400) p.vy = -400;
@@ -452,14 +455,16 @@ class Scene {
         if (p.vy >= 0) for (const pl of Z.plats) {
           if (py <= pl.y + 5 && p.y >= pl.y && p.x + 15 > pl.x && p.x - 15 < pl.x + pl.w) { p.y = pl.y; p.vy = 0; p.ground = true; }
         }
-        for (const sp of Z.springs) if (p.vy >= 0 && Math.abs(p.x - sp.x) < 18 && p.y >= sp.y - 10 && py <= sp.y + 4 && !this.frozen) { p.vy = -PHYS.spring; this.jumps = 1; this.coyote = -1e9; sp.t = this.t; sfx('boing'); this.burst(sp.x, sp.y - 6, 10); }
+        for (const sp of Z.springs) if (p.vy >= 0 && Math.abs(p.x - sp.x) < 18 && p.y >= sp.y - 10 && py <= sp.y + 4 && !this.frozen) { p.vy = -PHYS.spring; this.jumps = 1; this.coyote = -1e9; sp.t = this.t; this.bs = -0.35; this.bv = 9; sfx('boing'); this.burst(sp.x, sp.y - 6, 10); }
       }
     }
     if (p.ground) {
-      if (!this.wasGround && this.prevVy > 480) { this.burst(p.x, p.y, 5); if (this.prevVy > 800) { this.shake = 0.15; } }
+      if (!this.wasGround && this.prevVy > 200) { this.bs = -Math.min(0.42, 0.12 + this.prevVy / 2400); this.bv = 0; if (this.prevVy > 480) this.burst(p.x, p.y, 5 + Math.min(8, this.prevVy / 150 | 0)); if (this.prevVy > 800) { this.shake = 0.15; } }
+      this.whooshed = false;
       this.coyote = t; this.jumps = 0; this.lastGroundY = p.y; this.safeZ = zoneOf(p.y);
     }
     this.wasGround = p.ground; this.prevVy = p.vy;
+    if (!p.ground && p.vy > 640 && !this.whooshed) { this.whooshed = true; sfx('whoosh'); this.fallFx = 1; }
     p.anim = !p.ground ? (p.vy < 0 ? 2 : 3) : Math.abs(p.vx) > 10 ? 1 : 0;
     // 선물 상자
     if (!this.frozen) {
@@ -489,10 +494,11 @@ class Scene {
   updateFriends(dt) {
     for (const f of Net.friends.values()) {
       const q = f.q;
+      f.bv = (f.bv || 0) + (-(f.bs || 0) * 240 - (f.bv || 0) * 9) * dt; f.bs = (f.bs || 0) + f.bv * dt;
       if (q.length) {
         const speed = 1 + Math.max(0, q.length - 5) * 0.35;
         f.prog += dt / 0.3 * speed;
-        while (f.prog >= 1 && q.length) { f.from = { ...q[0] }; q.shift(); f.prog -= 1; if (!q.length) f.prog = 0; }
+        while (f.prog >= 1 && q.length) { const pa = f.from.a; f.from = { ...q[0] }; q.shift(); f.prog -= 1; if (!q.length) f.prog = 0; if (f.from.a === 2 && pa !== 2) { f.bs = -0.28; f.bv = 7.5; } else if (pa === 3 && f.from.a < 2) { f.bs = -0.3; f.bv = 0; } }
         if (q.length) {
           const a = f.from, b = q[0];
           if (Math.abs(b.x - a.x) > 300 || Math.abs(b.y - a.y) > 300) { f.cur = { x: b.x, y: b.y, a: b.a, f: b.f }; f.from = { ...b }; f.prog = 0; q.shift(); }
@@ -523,18 +529,28 @@ class Scene {
     }
     for (const fr of Net.friends.values()) {
       const c = fr.cur; if (c.y < cam - 80 || c.y > cam + H + 80) continue;
-      drawChar(g, fr.skin, c.x, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25 });
+      drawChar(g, fr.skin, c.x, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25, bs: (fr.bs || 0) + (c.a === 3 ? 0.08 : 0) });
       this.label(g, fr.name, c.x, c.y - 68, '#ffffff');
     }
-    drawChar(g, profile.skin, p.x, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.35 });
+    if (this.fallFx > 0.05) {   // 슈웅~ 떨어지는 속도선
+      g.save(); g.lineCap = 'round';
+      for (let k = 0; k < 7; k++) { const lx = p.x + (k - 3) * 9 + Math.sin(this.t * 40 + k) * 2, len = 40 + (k % 3) * 22 + Math.min(80, p.vy / 12);
+        g.strokeStyle = `rgba(255,255,255,${(0.55 * this.fallFx).toFixed(2)})`; g.lineWidth = 3; g.beginPath(); g.moveTo(lx, p.y - 50 - ((k * 37) % 30)); g.lineTo(lx, p.y - 50 - ((k * 37) % 30) - len); g.stroke(); }
+      g.restore();
+    }
+    drawChar(g, profile.skin, p.x, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.35, bs: this.bs + (p.ground ? 0 : clamp(-p.vy / 2600, -0.12, 0.16)) });
+    if (this.fallFx > 0.5) { g.save(); g.globalAlpha = Math.min(1, this.fallFx); g.font = '900 26px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.lineWidth = 6; g.strokeStyle = '#7a62c8'; g.strokeText('슈웅~', p.x + 52, p.y - 90); g.fillStyle = '#fff'; g.fillText('슈웅~', p.x + 52, p.y - 90); g.restore(); }
     this.label(g, profile.name, p.x, p.y - 72, '#ffe27a');
     for (let i = this.puffs.length - 1; i >= 0; i--) { const q = this.puffs[i]; q.l -= 0.016; if (q.l <= 0) { this.puffs.splice(i, 1); continue; } q.x += q.vx * 0.016; q.y += q.vy * 0.016; g.globalAlpha = q.l * 2; g.fillStyle = '#fff'; g.beginPath(); g.arc(q.x, q.y, 3 + (0.4 - q.l) * 8, 0, 7); g.fill(); }
     g.globalAlpha = 1;
     g.restore();
   }
-  label(g, text, x, y, color) {
-    g.font = '700 15px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = 'rgba(30,20,70,.9)'; g.lineJoin = 'round';
-    g.strokeText(text, x, y); g.fillStyle = color; g.fillText(text, x, y);
+  label(g, text, x, y, color) {   // 머리 위 닉네임 이름표
+    g.font = '800 17px "Malgun Gothic","Apple SD Gothic Neo",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const w = g.measureText(text).width + 18;
+    g.fillStyle = 'rgba(40,24,80,.62)'; this.rr(g, x - w / 2, y - 12, w, 24, 12); g.fill();
+    g.strokeStyle = color; g.lineWidth = 1.6; g.globalAlpha = 0.7; this.rr(g, x - w / 2, y - 12, w, 24, 12); g.stroke(); g.globalAlpha = 1;
+    g.fillStyle = color; g.fillText(text, x, y + 1); g.textBaseline = 'alphabetic';
   }
   drawPlat(g, pl, z) {
     const T = THEMES[mapOf(Net.s.seed, z)].plat, fill = T[0], edge = T[1];
