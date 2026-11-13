@@ -98,49 +98,153 @@ function buildZone(seed, z) {
   if (zoneCache.size > 200) zoneCache.clear(); zoneCache.set(key, out); return out;
 }
 
-/* ---------- 캐릭터 (30종: 10색 × 3모양) ---------- */
-const SKIN_COLORS = [['#ff8fa3', '#ffd0da'], ['#ffb347', '#ffe0b0'], ['#ffe066', '#fff5b8'], ['#8ce99a', '#d3f9d8'], ['#63e6be', '#c3fae8'], ['#74c0fc', '#d0ebff'], ['#9775fa', '#e5dbff'], ['#f783ac', '#ffdeeb'], ['#ced4da', '#f8f9fa'], ['#c99a6b', '#f0dcc4']];
-function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, vx, vy, flip, scale, anim}
-  const [c1, c2] = SKIN_COLORS[skin % 10], form = Math.floor(skin / 10) % 3, s = o.scale || 1.25;
-  const run = o.anim === 1, bob = run ? Math.sin(o.t * 18) * 1.6 : Math.sin(o.t * 3) * 0.6;
-  const stretch = o.anim === 2 ? 1.1 : o.anim === 3 ? 0.94 : 1;
-  g.save(); g.translate(x, y); g.scale((o.flip ? -1 : 1) * s, s * stretch);
-  const dark = 'rgba(40,20,70,.85)';
-  // 발
-  g.fillStyle = c1; g.strokeStyle = dark; g.lineWidth = 1.6;
-  const fo = run ? Math.sin(o.t * 18) * 3 : 0;
-  [[-6 + fo, 0], [6 - fo, 0]].forEach((p) => { g.beginPath(); g.ellipse(p[0], -2, 4.5, 3, 0, 0, 7); g.fill(); g.stroke(); });
-  // 귀/모자 (뒤)
-  if (form === 0) { [[-7, -1], [7, 1]].forEach(([dx, rot]) => { g.fillStyle = c1; g.beginPath(); g.ellipse(dx, -37 + bob, 4, 10, rot * 0.12, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#ffc2d4'; g.beginPath(); g.ellipse(dx, -37 + bob, 1.8, 6, rot * 0.12, 0, 7); g.fill(); }); }
-  // 몸
-  g.fillStyle = c1; g.beginPath(); g.ellipse(0, -15 + bob * 0.5, 13, 14, 0, 0, 7); g.fill(); g.stroke();
-  g.fillStyle = c2; g.beginPath(); g.ellipse(0, -10 + bob * 0.5, 8, 8, 0, 0, 7); g.fill();
-  if (form === 1) { g.fillStyle = c1; [[-1], [1]].forEach(([d]) => { g.beginPath(); g.moveTo(d * 12, -22 + bob); g.lineTo(d * 11, -35 + bob); g.lineTo(d * 3, -27 + bob); g.closePath(); g.fill(); g.stroke(); }); g.fillStyle = '#ffc2d4'; [[-1], [1]].forEach(([d]) => { g.beginPath(); g.moveTo(d * 10, -25 + bob); g.lineTo(d * 10, -31 + bob); g.lineTo(d * 6, -27 + bob); g.closePath(); g.fill(); }); }
-  if (form === 2) { g.strokeStyle = '#3a8a4a'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -28 + bob); g.quadraticCurveTo(2, -34 + bob, 0, -37 + bob); g.stroke(); g.fillStyle = '#6fd67a'; g.beginPath(); g.ellipse(-4, -37 + bob, 5, 3, -0.5, 0, 7); g.fill(); g.beginPath(); g.ellipse(4, -37 + bob, 5, 3, 0.5, 0, 7); g.fill(); }
+/* ---------- 캐릭터: 말랑말랑 동글동글 30종 (동물 10종 × 색 3가지) ---------- */
+const SPECIES = [
+  { n: 'bunny', cols: ['#ffffff', '#fff0d2', '#e6dcff'] }, { n: 'cat', cols: ['#ffbd7a', '#d3d8e2', '#fff6ee'] },
+  { n: 'bear', cols: ['#d9a46c', '#f0c9a8', '#a9826a'] }, { n: 'dog', cols: ['#f6dca8', '#ffffff', '#c89a70'] },
+  { n: 'chick', cols: ['#ffe46e', '#ffcf7a', '#fff6b0'] }, { n: 'frog', cols: ['#90e394', '#86dcec', '#ccf28e'] },
+  { n: 'penguin', cols: ['#7b93e0', '#566086', '#ff9fbb'] }, { n: 'panda', cols: ['#ffffff', '#c9f5e6', '#ffd9e6'] },
+  { n: 'pig', cols: ['#ffb9cc', '#ffd6e4', '#f6a9dc'] }, { n: 'mouse', cols: ['#dcdcec', '#f8d9c8', '#cfe6ff'] },
+];
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
+function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, flip, scale, anim}
+  const sp = SPECIES[skin % 10], col = sp.cols[Math.floor(skin / 10) % 3], line = shade(col, 0.62), n = sp.n;
+  const s = o.scale || 1.3, t = o.t, run = o.anim === 1;
+  let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.025;
+  if (run) { sx = 1 + Math.sin(t * 16) * 0.05; sy = 1 - Math.sin(t * 16) * 0.07; }
+  if (o.anim === 2) { sx = 0.9; sy = 1.14; } else if (o.anim === 3) { sx = 1.07; sy = 0.93; }
+  const hop = run ? Math.abs(Math.sin(t * 8)) * 3 : 0;
+  g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s * sx, s * sy);
+  g.lineJoin = 'round'; g.lineWidth = 1.6; g.strokeStyle = line;
+  const ell = (cx, cy, rx, ry, fill, rot) => { g.beginPath(); g.ellipse(cx, cy, rx, ry, rot || 0, 0, 7); g.fillStyle = fill; g.fill(); g.stroke(); };
+  const dot = (cx, cy, r, fill) => { g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = fill; g.fill(); };
+  const dark = n === 'panda' ? '#3a3a48' : shade(col, 0.82);
+  // 뒤쪽 (귀·꼬리)
+  if (n === 'bunny') { ell(-8, -39, 4.6, 12, col, -0.12); ell(8, -39, 4.6, 12, col, 0.12); dot(-8, -39, 0); ell(-8, -39, 2.2, 8, '#ffc6d6', -0.12); ell(8, -39, 2.2, 8, '#ffc6d6', 0.12); }
+  if (n === 'cat') { [[-1], [1]].forEach(([d]) => { g.beginPath(); g.moveTo(d * 15, -22); g.quadraticCurveTo(d * 17, -38, d * 8, -33); g.quadraticCurveTo(d * 5, -30, d * 4, -29); g.closePath(); g.fillStyle = col; g.fill(); g.stroke(); g.beginPath(); g.moveTo(d * 13, -26); g.quadraticCurveTo(d * 14, -34, d * 9, -31); g.closePath(); g.fillStyle = '#ffc6d6'; g.fill(); }); }
+  if (n === 'bear') { ell(-12, -29, 6, 6, col); ell(12, -29, 6, 6, col); ell(-12, -29, 3, 3, '#f7d4c0'); ell(12, -29, 3, 3, '#f7d4c0'); }
+  if (n === 'panda') { ell(-12, -29, 6, 6, '#3a3a48'); ell(12, -29, 6, 6, '#3a3a48'); }
+  if (n === 'mouse') { ell(-13, -28, 7.5, 7.5, col); ell(13, -28, 7.5, 7.5, col); ell(-13, -28, 4.5, 4.5, '#ffc6d6'); ell(13, -28, 4.5, 4.5, '#ffc6d6'); }
+  if (n === 'pig') { [[-1], [1]].forEach(([d]) => { g.beginPath(); g.moveTo(d * 8, -28); g.lineTo(d * 16, -36); g.lineTo(d * 15, -24); g.closePath(); g.fillStyle = shade(col, 0.95); g.fill(); g.stroke(); }); }
+  if (n === 'dog') { ell(-16, -19, 5, 10, shade(col, 0.82), 0.25); ell(16, -19, 5, 10, shade(col, 0.82), -0.25); }
+  if (n === 'frog') { ell(-9, -30, 6.5, 6.5, col); ell(9, -30, 6.5, 6.5, col); }
+  // 몸 (동글동글 말랑)
+  const grd = g.createRadialGradient(-6, -24, 3, 0, -15, 22); grd.addColorStop(0, shade(col, 1.08)); grd.addColorStop(1, col);
+  g.beginPath(); g.ellipse(0, -15, 18, 15, 0, 0, 7); g.fillStyle = grd; g.fill(); g.stroke();
+  // 배 / 무늬
+  if (n === 'penguin') { ell(0, -11, 11, 11, '#ffffff'); }
+  else if (n === 'panda') { ell(-10, -14, 5, 6, '#3a3a48', 0.2); ell(10, -14, 5, 6, '#3a3a48', -0.2); g.lineWidth = 0; ell(0, -9, 10, 8, '#ffffff'); g.lineWidth = 1.6; }
+  else { g.save(); g.lineWidth = 0; g.beginPath(); g.ellipse(0, -9, 10, 8, 0, 0, 7); g.fillStyle = 'rgba(255,255,255,.55)'; g.fill(); g.restore(); }
+  if (n === 'cat') { g.strokeStyle = shade(col, 0.8); g.lineWidth = 1.4; for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(dx, -29); g.lineTo(dx, -25); g.stroke(); } g.strokeStyle = line; g.lineWidth = 1.6; }
+  // 발·팔 (콩알)
+  const fo = run ? Math.sin(t * 16) * 2.5 : 0;
+  ell(-8 + fo, -1.5, 5.2, 3.4, n === 'penguin' || n === 'chick' ? '#ffa94d' : dark); ell(8 - fo, -1.5, 5.2, 3.4, n === 'penguin' || n === 'chick' ? '#ffa94d' : dark);
+  const aw = run ? Math.sin(t * 16 + 1) * 0.5 : o.anim === 2 ? -0.9 : 0.1;
+  g.save(); g.translate(-17, -14); g.rotate(0.5 + aw); ell(0, 0, 3.6, 5, dark); g.restore();
+  g.save(); g.translate(17, -14); g.rotate(-0.5 - aw); ell(0, 0, 3.6, 5, dark); g.restore();
   // 얼굴
-  g.fillStyle = dark; g.beginPath(); g.arc(-4.5, -18 + bob * 0.5, 1.9, 0, 7); g.arc(4.5, -18 + bob * 0.5, 1.9, 0, 7); g.fill();
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(-3.9, -18.7 + bob * 0.5, 0.7, 0, 7); g.arc(5.1, -18.7 + bob * 0.5, 0.7, 0, 7); g.fill();
-  g.fillStyle = 'rgba(255,100,130,.45)'; g.beginPath(); g.ellipse(-8, -14 + bob * 0.5, 2.4, 1.6, 0, 0, 7); g.ellipse(8, -14 + bob * 0.5, 2.4, 1.6, 0, 0, 7); g.fill();
-  g.strokeStyle = dark; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -13.5 + bob * 0.5, 2.2, 0.15, Math.PI - 0.15); g.stroke();
+  const blink = (Math.floor(t * 1.3 + skin) % 4 === 0) && (t * 1.3 + skin) % 1 < 0.12;
+  const ey = -18;
+  if (blink) { g.strokeStyle = '#3a2848'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-9, ey); g.lineTo(-5, ey); g.moveTo(5, ey); g.lineTo(9, ey); g.stroke(); }
+  else { dot(-7, ey, 2.3, '#2e2038'); dot(7, ey, 2.3, '#2e2038'); dot(-6.3, ey - 0.9, 0.8, '#fff'); dot(7.7, ey - 0.9, 0.8, '#fff'); }
+  g.fillStyle = 'rgba(255,120,150,.5)'; g.beginPath(); g.ellipse(-12, -13.5, 3.2, 2.1, 0, 0, 7); g.ellipse(12, -13.5, 3.2, 2.1, 0, 0, 7); g.fill();
+  g.strokeStyle = '#2e2038'; g.lineWidth = 1.2; g.lineCap = 'round';
+  if (n === 'chick') { g.beginPath(); g.moveTo(-3, -15); g.lineTo(3, -15); g.lineTo(0, -11); g.closePath(); g.fillStyle = '#ffa94d'; g.fill(); }
+  else if (n === 'penguin') { g.beginPath(); g.moveTo(-3.5, -15); g.lineTo(3.5, -15); g.lineTo(0, -10.5); g.closePath(); g.fillStyle = '#ffa94d'; g.fill(); }
+  else if (n === 'pig') { g.beginPath(); g.ellipse(0, -13, 5.5, 3.8, 0, 0, 7); g.fillStyle = '#ff9fb8'; g.fill(); dot(-1.9, -13, 0.9, '#b94a6a'); dot(1.9, -13, 0.9, '#b94a6a'); }
+  else { dot(0, -14.6, 1.3, n === 'dog' || n === 'bear' || n === 'panda' ? '#3a2848' : '#ff8aa8'); g.beginPath(); g.arc(-1.8, -12.8, 1.8, 0.1, Math.PI - 0.3); g.arc(1.8, -12.8, 1.8, 0.3, Math.PI - 0.1); g.stroke(); }
+  if (n === 'chick') { ell(0, -34, 2, 4, col, 0); ell(-3.5, -33, 1.8, 3.5, col, -0.5); ell(3.5, -33, 1.8, 3.5, col, 0.5); }
+  if (n === 'frog') { dot(-9, -30, 0); }
   g.restore();
 }
-function previewSkin(canvas, skin) { canvas.width = 56; canvas.height = 60; const g = canvas.getContext('2d'); drawChar(g, skin, 28, 54, { t: 0, anim: 0, scale: 1.15 }); }
+function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); drawChar(g, skin, 32, 56, { t: 0, anim: 0, scale: 1.2 }); }
 
-/* ---------- 배경 ---------- */
-const BASE = (function () { const s = document.currentScript; return s && s.src ? s.src.replace(/[^/]*$/, '') : ''; })();
-const bgs = [];
-function bgImg(i) {
-  if (!bgs[i]) { const im = new Image(); im.src = BASE + 'bg/m' + i + '.jpg'; bgs[i] = im; }
-  return bgs[i];
+/* ---------- 배경: 직접 그린 10가지 하늘 나라 ---------- */
+const THEMES = [
+  { sky: ['#ffc9dd', '#ffe3cf', '#fff6e2'], plat: ['#ffd6e0', '#e8a0b8'], deco: ['cloud', 'heart', 'sun'] },
+  { sky: ['#15133f', '#2f2a78', '#6a4aa6'], plat: ['#c9c2f0', '#7a6fc0'], deco: ['cloud', 'star', 'moon'] },
+  { sky: ['#bff3e3', '#e2f9d6', '#fdfbe0'], plat: ['#d8f2cf', '#7fbf86'], deco: ['island', 'cloud'] },
+  { sky: ['#ff8fa3', '#ffbf9b', '#ffe8b0'], plat: ['#ffe0c0', '#e8987a'], deco: ['cloud', 'sun2', 'bird'] },
+  { sky: ['#ffbfe0', '#ffd9ec', '#fff0f8'], plat: ['#ffcfe6', '#e47fb0'], deco: ['lolly', 'cloud', 'sprinkle'] },
+  { sky: ['#7ccaff', '#b8e6ff', '#e4f6ff'], plat: ['#d8efff', '#78b4e0'], deco: ['rainbow', 'cloud', 'bubble'] },
+  { sky: ['#06182c', '#0d3a4c', '#1c6a68'], plat: ['#c2f0e6', '#5cb8a8'], deco: ['aurora', 'star'] },
+  { sky: ['#fff2a0', '#ffe4b8', '#ffd6d0'], plat: ['#fff0b8', '#e8b648'], deco: ['balloon', 'cloud'] },
+  { sky: ['#120f38', '#32196a', '#6a2f9a'], plat: ['#e0c8ff', '#9a6ad8'], deco: ['planet', 'star', 'comet'] },
+  { sky: ['#cdeeff', '#e6f7ff', '#f8fdff'], plat: ['#eaf7ff', '#8cc4e8'], deco: ['crystal', 'flake', 'cloud'] },
+];
+const rnd = mulberry32(777);
+function mk(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; }
+function cloudShape(g, x, y, s, fill) { g.fillStyle = fill; g.beginPath(); [[0, 0, 34], [32, -10, 28], [62, 2, 26], [-30, 6, 22], [90, 10, 18], [30, 14, 30]].forEach(([dx, dy, r]) => { g.moveTo(x + dx * s + r * s, y + dy * s); g.arc(x + dx * s, y + dy * s, r * s, 0, 7); }); g.fill(); }
+const SPR = {};
+function sprite(kind) {
+  if (SPR[kind]) return SPR[kind];
+  let c;
+  switch (kind) {
+    case 'cloud': c = mk(220, 110, (g) => { cloudShape(g, 80, 60, 1, 'rgba(255,255,255,.85)'); cloudShape(g, 80, 66, 1, 'rgba(255,255,255,.5)'); }); break;
+    case 'heart': c = mk(40, 40, (g) => { g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.moveTo(20, 34); g.bezierCurveTo(-6, 16, 8, 0, 20, 12); g.bezierCurveTo(32, 0, 46, 16, 20, 34); g.fill(); }); break;
+    case 'star': c = mk(30, 30, (g) => { g.fillStyle = '#fff6b8'; g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 6 : 14, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(15 + Math.cos(a) * r, 15 + Math.sin(a) * r); } g.fill(); }); break;
+    case 'island': c = mk(240, 210, (g) => {
+      g.fillStyle = '#b98a62'; g.beginPath(); g.moveTo(20, 120); g.quadraticCurveTo(120, 230, 220, 120); g.closePath(); g.fill();
+      g.fillStyle = '#9ad87a'; g.beginPath(); g.ellipse(120, 120, 100, 22, 0, 0, 7); g.fill(); g.fillStyle = '#b6ee92'; g.beginPath(); g.ellipse(120, 114, 96, 16, 0, 0, 7); g.fill();
+      g.fillStyle = '#8a5a3a'; g.fillRect(114, 62, 10, 52); g.fillStyle = '#5fc27a'; [[119, 46, 30], [96, 62, 20], [142, 62, 20]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+      g.fillStyle = '#ff9fb8'; [[108, 40], [128, 52], [100, 66]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); }); }); break;
+    case 'lolly': c = mk(90, 170, (g) => { g.fillStyle = '#fff'; g.fillRect(42, 80, 8, 90); const cols = ['#ff6fa8', '#fff', '#ffd23f', '#fff']; for (let i = 0; i < 8; i++) { g.fillStyle = cols[i % 4]; g.beginPath(); g.moveTo(46, 44); g.arc(46, 44, 40, i * Math.PI / 4, (i + 1) * Math.PI / 4); g.fill(); } g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 3; g.beginPath(); g.arc(46, 44, 38, 0, 7); g.stroke(); }); break;
+    case 'balloon': c = mk(70, 130, (g) => { const col = ['#ff7a9a', '#7ac8ff', '#9be58a', '#ffa94d'][Math.floor(rnd() * 4)]; g.strokeStyle = 'rgba(120,100,100,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(35, 84); g.quadraticCurveTo(28, 110, 36, 128); g.stroke(); g.fillStyle = col; g.beginPath(); g.ellipse(35, 40, 28, 36, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(35, 76); g.lineTo(28, 88); g.lineTo(42, 88); g.fill(); g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(25, 28, 7, 12, -0.4, 0, 7); g.fill(); }); break;
+    case 'planet': c = mk(200, 140, (g) => { const gr = g.createRadialGradient(80, 50, 10, 100, 70, 60); gr.addColorStop(0, '#ffd0f0'); gr.addColorStop(1, '#9a5ad8'); g.fillStyle = gr; g.beginPath(); g.arc(100, 70, 48, 0, 7); g.fill(); g.strokeStyle = 'rgba(255,230,180,.85)'; g.lineWidth = 8; g.beginPath(); g.ellipse(100, 74, 90, 18, -0.3, 0, 7); g.stroke(); g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(84, 52, 14, 8, -0.5, 0, 7); g.fill(); }); break;
+    case 'crystal': c = mk(120, 170, (g) => { [[60, 20, 36, 150, '#bfe6ff'], [26, 70, 28, 100, '#a8d8f5'], [96, 60, 26, 110, '#d6f0ff']].forEach(([x, y, w, h, col]) => { g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.lineTo(x + w / 2, y + h * 0.25); g.lineTo(x + w / 2, y + h); g.lineTo(x - w / 2, y + h); g.lineTo(x - w / 2, y + h * 0.25); g.closePath(); g.fill(); g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x - w / 2, y + h * 0.25); g.lineTo(x - w / 2 + 6, y + h); g.lineTo(x - 2, y + h * 0.3); g.closePath(); g.fill(); }); }); break;
+    case 'flake': c = mk(40, 40, (g) => { g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 2.4; g.lineCap = 'round'; for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(20 + Math.cos(a) * 16, 20 + Math.sin(a) * 16); g.lineTo(20 - Math.cos(a) * 16, 20 - Math.sin(a) * 16); g.stroke(); } }); break;
+    case 'bubble': c = mk(40, 40, (g) => { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2; g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(20, 20, 14, 0, 7); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(15, 14, 3, 0, 7); g.fill(); }); break;
+    case 'bird': c = mk(60, 30, (g) => { g.strokeStyle = 'rgba(120,60,90,.7)'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(6, 18); g.quadraticCurveTo(18, 2, 30, 18); g.quadraticCurveTo(42, 2, 54, 18); g.stroke(); }); break;
+    case 'sprinkle': c = mk(30, 12, (g) => { g.fillStyle = ['#ff6fa8', '#6fc8ff', '#ffd23f'][Math.floor(rnd() * 3)]; g.beginPath(); g.roundRect ? g.roundRect(2, 3, 26, 6, 3) : g.rect(2, 3, 26, 6); g.fill(); }); break;
+    case 'comet': c = mk(150, 40, (g) => { const gr = g.createLinearGradient(0, 20, 150, 20); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,.95)'); g.fillStyle = gr; g.beginPath(); g.moveTo(0, 20); g.lineTo(138, 12); g.lineTo(138, 28); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(140, 20, 8, 0, 7); g.fill(); }); break;
+    default: c = mk(2, 2, () => {});
+  }
+  return (SPR[kind] = c);
 }
-function drawBg(g, i, a) {
-  const im = bgImg(i);
-  g.globalAlpha = a;
-  if (im.complete && im.naturalWidth) g.drawImage(im, 0, 0, W, H);
-  else { g.fillStyle = '#2a2560'; g.fillRect(0, 0, W, H); }
+const skyCache = [];
+function skyOf(i) {   // 하늘 + 해/달/무지개/오로라 (한 번만 그려 둠)
+  if (skyCache[i]) return skyCache[i];
+  const T = THEMES[i], R = mulberry32(100 + i);
+  return (skyCache[i] = mk(W, H, (g) => {
+    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, T.sky[0]); gr.addColorStop(0.55, T.sky[1]); gr.addColorStop(1, T.sky[2]); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const glow = (x, y, r, c) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, c); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(x - r, y - r, r * 2, r * 2); };
+    const stars = (n, a) => { for (let k = 0; k < n; k++) { g.fillStyle = `rgba(255,255,255,${(a * (0.4 + R() * 0.6)).toFixed(2)})`; g.beginPath(); g.arc(R() * W, R() * H, 0.6 + R() * 1.8, 0, 7); g.fill(); } };
+    if (i === 0) { glow(720, 360, 280, 'rgba(255,240,200,.9)'); g.fillStyle = '#fff3c0'; g.beginPath(); g.arc(720, 360, 56, 0, 7); g.fill(); }
+    if (i === 1) { stars(150, 0.95); glow(190, 120, 160, 'rgba(255,240,200,.55)'); g.fillStyle = '#fff3c9'; g.beginPath(); g.arc(190, 120, 44, 0, 7); g.fill(); g.fillStyle = THEMES[1].sky[1]; g.beginPath(); g.arc(210, 108, 40, 0, 7); g.fill(); }
+    if (i === 3) { glow(480, 400, 360, 'rgba(255,245,190,.85)'); g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(480, 400, 90, 0, 7); g.fill(); g.fillStyle = 'rgba(150,80,150,.35)'; g.beginPath(); g.moveTo(0, 470); for (let x = 0; x <= W; x += 40) g.lineTo(x, 450 - Math.sin(x / 110) * 26 - 20); g.lineTo(W, H); g.lineTo(0, H); g.fill(); }
+    if (i === 5) { ['#ff9aa8', '#ffcf8a', '#fff29a', '#a8f0a8', '#9ad4ff', '#c8a8ff'].forEach((c, k) => { g.strokeStyle = c; g.globalAlpha = 0.5; g.lineWidth = 16; g.beginPath(); g.arc(W / 2, 640, 520 - k * 15, Math.PI, 0); g.stroke(); }); g.globalAlpha = 1; }
+    if (i === 6) { stars(90, 0.8); [['rgba(120,255,190,.38)', 150], ['rgba(190,140,255,.32)', 230], ['rgba(120,230,255,.25)', 310]].forEach(([c, y0]) => { const ag = g.createLinearGradient(0, y0 - 80, 0, y0 + 120); ag.addColorStop(0, 'rgba(0,0,0,0)'); ag.addColorStop(0.45, c); ag.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = ag; g.beginPath(); g.moveTo(0, y0); for (let x = 0; x <= W; x += 30) g.lineTo(x, y0 + Math.sin(x / 90 + y0) * 40); g.lineTo(W, y0 + 160); for (let x = W; x >= 0; x -= 30) g.lineTo(x, y0 + 160 + Math.sin(x / 70 + y0) * 30); g.fill(); }); g.fillStyle = 'rgba(220,245,255,.9)'; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 30) g.lineTo(x, 480 - Math.abs(Math.sin(x / 130)) * 40); g.lineTo(W, H); g.fill(); }
+    if (i === 8) { stars(170, 0.95); glow(220, 150, 220, 'rgba(255,120,200,.35)'); glow(760, 380, 260, 'rgba(100,140,255,.32)'); }
+    if (i === 9) { glow(480, 120, 360, 'rgba(255,255,255,.9)'); }
+    if (i === 2) { glow(160, 90, 200, 'rgba(255,255,220,.8)'); }
+    if (i === 7) { glow(780, 110, 240, 'rgba(255,255,255,.7)'); }
+    if (i === 4) { for (let k = 0; k < 30; k++) { g.fillStyle = ['rgba(255,255,255,.7)', 'rgba(255,230,120,.6)', 'rgba(150,210,255,.6)'][k % 3]; g.beginPath(); g.arc(R() * W, R() * H, 2 + R() * 3, 0, 7); g.fill(); } }
+  }));
+}
+// 아래에서 위로 올라갈수록 천천히 내려오는 장식(시차) — 올라가는 느낌
+function decoList(i) {
+  const T = THEMES[i], R = mulberry32(300 + i), list = [];
+  T.deco.forEach((kind) => {
+    const n = { cloud: 7, heart: 8, star: 12, island: 3, lolly: 4, balloon: 5, planet: 2, crystal: 3, flake: 18, bubble: 12, bird: 3, sprinkle: 14, comet: 2, sun: 0, sun2: 0, moon: 0, rainbow: 0, aurora: 0 }[kind] || 0;
+    for (let k = 0; k < n; k++) list.push({ kind, x: R() * W, y: R() * 900, f: kind === 'cloud' ? 0.12 + R() * 0.2 : kind === 'island' || kind === 'planet' || kind === 'crystal' ? 0.28 + R() * 0.1 : 0.15 + R() * 0.3, s: 0.6 + R() * 0.7, dx: (R() - 0.5) * 12, p: R() * 6 });
+  });
+  return list;
+}
+const decoCache = [];
+function drawTheme(g, i, a, cam, t) {
+  g.globalAlpha = a; g.drawImage(skyOf(i), 0, 0);
+  const L = decoCache[i] || (decoCache[i] = decoList(i)), LOOP = 900;
+  for (const d of L) {
+    const sp = sprite(d.kind); if (sp.width < 4) continue;
+    const y = (((d.y + cam * d.f) % LOOP) + LOOP) % LOOP - 180;
+    const x = d.x + Math.sin(t * 0.3 + d.p) * 14 + d.dx * t * 0.2;
+    const xx = ((x % (W + 240)) + W + 240) % (W + 240) - 120;
+    const w = sp.width * d.s, h = sp.height * d.s;
+    g.globalAlpha = a * (d.kind === 'cloud' ? 0.9 : 1); g.drawImage(sp, xx - w / 2, y - h / 2, w, h);
+  }
   g.globalAlpha = 1;
 }
-const motes = Array.from({ length: 34 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 2.4, s: 8 + Math.random() * 22, p: Math.random() * 6 }));
+const motes = Array.from({ length: 26 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 1 + Math.random() * 2.2, s: 8 + Math.random() * 20, p: Math.random() * 6 }));
 
 /* ---------- 네트워크 ---------- */
 const Net = { offset: 0, rtt: 1e9, me: null, round: -1, s: { status: 'lobby', round: 0, seed: 1, duration: 300, startAt: 0, endsAt: 0 }, friends: new Map(), n: 1, pending: false, rank: null, ok: true, fails: 0 };
@@ -247,7 +351,7 @@ const Quiz = {
     const ok = this.opts[i].ok, bs = $('qChoices').children;
     [...bs].forEach((b, k) => { b.disabled = true; if (this.opts[k].ok) b.classList.add('ok'); });
     if (!ok) bs[i].classList.add('no');
-    $('qFeed').textContent = ok ? `🎉 정답! ⚡ 에너지 +${GAME.energyPer}  ⭐ +${GAME.pointsPer}점` : '😢 아쉬워요! 초록색이 정답이에요.';
+    $('qFeed').textContent = ok ? `🎉 정답! ⭐ +${GAME.pointsPer}점` : '😢 아쉬워요! 초록색이 정답이에요.';
     sfx(ok ? 'correct' : 'wrong');
     const cb = this.onDone;
     setTimeout(() => { this.hide(); cb && cb(ok); }, ok ? 900 : 1900);
@@ -289,7 +393,7 @@ class Scene {
     const s = Net.s;
     if (!first && s.round !== Net.round) {   // 새 판 시작
       Net.round = s.round;
-      this.best = 0; this.correct = 0; this.energy = 100; this.gifts.clear(); this.jumps = 0;
+      this.best = 0; this.correct = 0; this.gifts.clear(); this.jumps = 0;
       this.teleport(W / 2 + (Math.random() - 0.5) * 360, -2);
       if (Quiz.open) Quiz.hide(); this.quizBusy = false;
       this.lastQuizAt = performance.now() + Math.max(0, s.startAt - serverNow());
@@ -309,8 +413,7 @@ class Scene {
     const steps = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / steps;
     for (let i = 0; i < steps; i++) this.physics(h, running);
     if (running) {
-      this.energy = Math.max(0, this.energy - GAME.drain * dt);
-      const hh = heightOf(this.p.y); if (hh > this.best) this.best = hh;
+            const hh = heightOf(this.p.y); if (hh > this.best) this.best = hh;
       if (!this.quizBusy && now - this.lastQuizAt > GAME.quizEvery * 1000) this.openQuiz('⏰ 퀴즈 타임!');
     }
     if (now - this.trailAt > 300) { this.trailAt = now; this.sq++; this.trail.push([Math.round(this.p.x), Math.round(this.p.y), this.p.anim, this.p.flip ? 1 : 0]); if (this.trail.length > 20) this.trail.shift(); }
@@ -332,11 +435,10 @@ class Scene {
       if (t - this.jumpBuf < 120) {
         if (t - this.coyote < 90 && this.jumps === 0) { p.vy = -PHYS.jump; this.jumps = 1; this.jumpBuf = -1e9; this.coyote = -1e9; sfx('jump'); }
         else if (this.jumps < 2 && !p.ground) {
-          if (this.energy > 0 || !running) { p.vy = -PHYS.djump; this.jumps = 2; this.jumpBuf = -1e9; sfx('djump'); this.burst(p.x, p.y, 8); }
-          else if (!this.noEnAt || t - this.noEnAt > 2500) { this.noEnAt = t; this.jumpBuf = -1e9; this.toast('⚡ 에너지가 없어요! 퀴즈를 맞히면 더블점프 충전'); }
+          { p.vy = -PHYS.djump; this.jumps = 2; this.jumpBuf = -1e9; sfx('djump'); this.burst(p.x, p.y + 4, 8); }
         }
       }
-      if (Scene.jumpReleased && p.vy < -220) p.vy = -220;
+      if (Scene.jumpReleased && p.vy < -400) p.vy = -400;
     } else p.vx = 0;
     const py = p.y;
     p.vy = Math.min(950, p.vy + PHYS.g * dt);
@@ -348,7 +450,7 @@ class Scene {
       for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) {
         const Z = buildZone(Net.s.seed, zz);
         if (p.vy >= 0) for (const pl of Z.plats) {
-          if (py <= pl.y + 5 && p.y >= pl.y && p.x + 11 > pl.x && p.x - 11 < pl.x + pl.w) { p.y = pl.y; p.vy = 0; p.ground = true; }
+          if (py <= pl.y + 5 && p.y >= pl.y && p.x + 15 > pl.x && p.x - 15 < pl.x + pl.w) { p.y = pl.y; p.vy = 0; p.ground = true; }
         }
         for (const sp of Z.springs) if (p.vy >= 0 && Math.abs(p.x - sp.x) < 18 && p.y >= sp.y - 10 && py <= sp.y + 4 && !this.frozen) { p.vy = -PHYS.spring; this.jumps = 1; this.coyote = -1e9; sp.t = this.t; sfx('boing'); this.burst(sp.x, sp.y - 6, 10); }
       }
@@ -380,7 +482,7 @@ class Scene {
     if (this.quizBusy || !QS.length) return;
     this.quizBusy = true; this.p.vx = 0;
     Quiz.show(tag, (ok) => {
-      if (ok) { this.energy = Math.min(100, this.energy + GAME.energyPer); this.correct++; }
+      if (ok) { this.correct++; }
       this.quizBusy = false; this.lastQuizAt = performance.now();
     });
   }
@@ -403,13 +505,10 @@ class Scene {
   render() {
     const g = ctx, cam = this.camY, p = this.p, s = Net.s;
     const ox = this.shake > 0 ? (Math.random() - 0.5) * 8 * this.shake * 6 : 0; this.shake = Math.max(0, this.shake - 0.016);
-    // 배경: 구역마다 다른 그림, 경계에서 부드럽게 섞기
+    // 배경: 구역마다 다른 하늘, 경계에서 부드럽게 섞기
     const u = -(cam + 270) / ZONE_H, zi = Math.max(0, Math.floor(u)), f = u - zi;
-    drawBg(g, mapOf(s.seed, zi), 1);
-    if (f > 0.86) drawBg(g, mapOf(s.seed, zi + 1), (f - 0.86) / 0.14);
-    else if (zi > 0 && f < 0.04) { /* 아래 구역과 겹침 없음 */ }
-    bgImg(mapOf(s.seed, zi + 1));
-    g.fillStyle = 'rgba(15,10,40,.10)'; g.fillRect(0, 0, W, H);
+    drawTheme(g, mapOf(s.seed, zi), 1, cam, this.t);
+    if (f > 0.86) drawTheme(g, mapOf(s.seed, zi + 1), (f - 0.86) / 0.14, cam, this.t);
     // 반짝이 먼지
     g.fillStyle = 'rgba(255,255,255,.55)';
     for (const m of motes) { m.y -= m.s * 0.016; m.x += Math.sin(this.t + m.p) * 0.15; if (m.y < -4) { m.y = H + 4; m.x = Math.random() * W; } g.globalAlpha = 0.35 + 0.35 * Math.sin(this.t * 2 + m.p); g.beginPath(); g.arc(m.x, m.y, m.r, 0, 7); g.fill(); }
@@ -424,11 +523,11 @@ class Scene {
     }
     for (const fr of Net.friends.values()) {
       const c = fr.cur; if (c.y < cam - 80 || c.y > cam + H + 80) continue;
-      drawChar(g, fr.skin, c.x, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.2 });
-      this.label(g, fr.name, c.x, c.y - 62, '#ffffff');
+      drawChar(g, fr.skin, c.x, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25 });
+      this.label(g, fr.name, c.x, c.y - 68, '#ffffff');
     }
-    drawChar(g, profile.skin, p.x, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.3 });
-    this.label(g, profile.name, p.x, p.y - 66, '#ffe27a');
+    drawChar(g, profile.skin, p.x, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.35 });
+    this.label(g, profile.name, p.x, p.y - 72, '#ffe27a');
     for (let i = this.puffs.length - 1; i >= 0; i--) { const q = this.puffs[i]; q.l -= 0.016; if (q.l <= 0) { this.puffs.splice(i, 1); continue; } q.x += q.vx * 0.016; q.y += q.vy * 0.016; g.globalAlpha = q.l * 2; g.fillStyle = '#fff'; g.beginPath(); g.arc(q.x, q.y, 3 + (0.4 - q.l) * 8, 0, 7); g.fill(); }
     g.globalAlpha = 1;
     g.restore();
@@ -438,15 +537,22 @@ class Scene {
     g.strokeText(text, x, y); g.fillStyle = color; g.fillText(text, x, y);
   }
   drawPlat(g, pl, z) {
-    const th = pl.kind === 'floor' ? 90 : 16, r = pl.kind === 'floor' ? 0 : 6;
-    g.fillStyle = 'rgba(40,25,70,.28)'; g.fillRect(pl.x + 3, pl.y + 4, pl.w, th);
-    g.fillStyle = '#d9c3a0'; this.rr(g, pl.x, pl.y, pl.w, th, r); g.fill();
-    g.fillStyle = '#fff1d6'; this.rr(g, pl.x, pl.y, pl.w, 6, r); g.fill();
-    g.fillStyle = 'rgba(120,90,60,.35)'; for (let x = pl.x + 32; x < pl.x + pl.w - 10; x += 32) g.fillRect(x, pl.y + 8, 2, th - 10);
-    g.strokeStyle = 'rgba(70,45,90,.7)'; g.lineWidth = 2; this.rr(g, pl.x, pl.y, pl.w, th, r); g.stroke();
+    const T = THEMES[mapOf(Net.s.seed, z)].plat, fill = T[0], edge = T[1];
+    if (pl.kind === 'floor') {
+      g.fillStyle = edge; g.fillRect(0, pl.y, W, 120); g.fillStyle = fill; this.rr(g, -10, pl.y, W + 20, 30, 12); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; this.rr(g, -10, pl.y, W + 20, 8, 4); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.35)'; for (let x = 20; x < W; x += 70) { g.beginPath(); g.arc(x, pl.y + 52, 7, 0, 7); g.fill(); }
+      return;
+    }
+    const h = 18;
+    g.fillStyle = 'rgba(40,25,70,.22)'; this.rr(g, pl.x + 2, pl.y + 5, pl.w, h, 9); g.fill();
+    g.fillStyle = edge; this.rr(g, pl.x, pl.y, pl.w, h, 9); g.fill();
+    g.fillStyle = fill; this.rr(g, pl.x + 1.5, pl.y + 1.5, pl.w - 3, h - 5, 8); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.75)'; this.rr(g, pl.x + 7, pl.y + 3, pl.w - 14, 4, 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.4)'; for (let x = pl.x + 22; x < pl.x + pl.w - 10; x += 26) { g.beginPath(); g.arc(x, pl.y + 12, 2.2, 0, 7); g.fill(); }
     if (pl.kind === 'cp') {   // 구역 시작 표시 깃발
-      const x = pl.x + 20; g.fillStyle = '#6a4fc0'; g.fillRect(x, pl.y - 44, 3, 44); g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(x + 3, pl.y - 44); g.lineTo(x + 40, pl.y - 34); g.lineTo(x + 3, pl.y - 24); g.fill();
-      this.label(g, '⛰ ' + heightOf(pl.y - 30) + 'm', pl.x + pl.w / 2 + 10, pl.y - 26, '#ffe27a');
+      const x = pl.x + 22; g.fillStyle = '#7a62c8'; g.fillRect(x, pl.y - 44, 3, 44); g.fillStyle = '#ff8fb0'; g.beginPath(); g.moveTo(x + 3, pl.y - 44); g.lineTo(x + 40, pl.y - 34); g.lineTo(x + 3, pl.y - 24); g.fill();
+      this.label(g, '⛰ ' + heightOf(pl.y - 30) + 'm', pl.x + pl.w / 2 + 14, pl.y - 26, '#fff3a8');
     }
   }
   rr(g, x, y, w, h, r) { g.beginPath(); if (!r) { g.rect(x, y, w, h); return; } g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
@@ -469,12 +575,11 @@ class Scene {
     $('hudH').textContent = `📏 ${heightOf(this.p.y)} m · 최고 ${this.best}`;
     $('hudScore').textContent = `⭐ ${this.best + this.correct * GAME.pointsPer}점`;
     $('hudN').textContent = `👥 ${Net.n}명`;
-    const ef = $('eFill'); ef.style.width = this.energy + '%'; ef.classList.toggle('low', this.energy < 25);
-    let rem = null, phase = '';
+        let rem = null, phase = '';
     if (s.status === 'lobby') phase = '🛝 연습 시간 · 선생님이 곧 시작해요! 마음껏 뛰어 보세요';
     else if (s.status === 'ended') { rem = 0; phase = '🏁 게임 끝'; }
     else if (countdown) { rem = s.duration * 1000; phase = '준비!'; }
-    else { rem = s.endsAt - sNow; phase = '🎁 선물 상자를 먹거나 30초마다 퀴즈! 정답이면 점수와 에너지 ⚡'; }
+    else { rem = s.endsAt - sNow; phase = '🎁 선물 상자를 먹거나 30초마다 퀴즈! 정답이면 +30점!'; }
     const timer = $('hudTimer');
     if (rem == null) timer.textContent = '--:--'; else { const sec = Math.max(0, Math.ceil(rem / 1000)); timer.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; }
     timer.classList.toggle('warn', running && rem != null && rem < 10500);
