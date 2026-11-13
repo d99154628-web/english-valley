@@ -1,7 +1,7 @@
 (function () {
 'use strict';
 const API = 'https://script.google.com/macros/s/AKfycbw5doexlj-huQ_CXWStLB-amo5l-KzKqo_fQj7I7QKIV1M9WFpFeLQrxp1XnzvazZpZ4g/exec';
-const W = 960, H = 540, ZONE_H = 1800;
+const W = 960, H = 540, ZONE_H = 900;   // 90m 올라갈 때마다 새로운 하늘 나라
 const PHYS = { g: 1300, speed: 250, jump: 640, djump: 580, spring: 1080 };
 const GAME = { quizEvery: 30, drain: 1.5, energyPer: 30, pointsPer: 30, giftRespawn: 20000 };
 const $ = (id) => document.getElementById(id);
@@ -38,7 +38,43 @@ const SFX = {
   whoosh: () => tone(900, 0.6, 'sawtooth', 0.06, -700), win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 'triangle', 0.16, 0, i * 0.11)); },
 };
 const sfx = (n) => { try { SFX[n](); } catch (e) {} };
-$('muteBtn').onclick = () => { muted = !muted; $('muteBtn').textContent = muted ? '🔇' : '🔊'; };
+
+/* ---------- 배경음악: 저작권 없는 크리스마스 캐롤(전통 곡) — 브라우저에서 직접 연주해서 번갈아 재생 ---------- */
+const NOTE_IDX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+function freqOf(n) { const m = /^([A-G])(#|b)?(\d)$/.exec(n); let k = NOTE_IDX[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (+m[3] + 1) * 12; return 440 * Math.pow(2, (k - 69) / 12); }
+const SONGS = [
+  { name: '징글벨', bpm: 132, bass: ['C3', 'G2'], notes: 'E4:1 E4:1 E4:2 E4:1 E4:1 E4:2 E4:1 G4:1 C4:1.5 D4:.5 E4:4 F4:1 F4:1 F4:1.5 F4:.5 F4:1 E4:1 E4:1 E4:.5 E4:.5 G4:1 G4:1 F4:1 D4:1 C4:4' },
+  { name: 'We Wish You a Merry Christmas', bpm: 126, bass: ['G2', 'D3'], notes: 'D4:1 G4:1 G4:.5 A4:.5 G4:.5 F#4:.5 E4:1 E4:1 E4:1 A4:1 A4:.5 B4:.5 A4:.5 G4:.5 F#4:1 D4:1 D4:1 B4:1 B4:.5 C5:.5 B4:.5 A4:.5 G4:1 E4:1 D4:.5 D4:.5 E4:1 A4:1 F#4:1 G4:3' },
+  { name: '고요한 밤', bpm: 84, bass: ['C3', 'G2'], notes: 'G4:1.5 A4:.5 G4:1 E4:3 G4:1.5 A4:.5 G4:1 E4:3 D5:2 D5:1 B4:3 C5:2 C5:1 G4:3 A4:2 A4:1 C5:1.5 B4:.5 A4:1 G4:1.5 A4:.5 G4:1 E4:3 A4:2 A4:1 C5:1.5 B4:.5 A4:1 G4:1.5 A4:.5 G4:1 E4:3 D5:2 D5:1 F5:1.5 D5:.5 B4:1 C5:3 E5:3 C5:1 G4:1 E4:1 G4:1.5 F4:.5 D4:1 C4:3' },
+  { name: '창밖을 보라 (Deck the Halls)', bpm: 120, bass: ['C3', 'G2'], notes: 'G5:1.5 F5:.5 E5:1 D5:1 C5:1 D5:1 E5:1 C5:1 D5:.5 E5:.5 F5:.5 D5:.5 E5:1.5 D5:.5 C5:1 B4:1 C5:2' },
+  { name: '기쁘다 구주 오셨네', bpm: 108, bass: ['C3', 'F3'], notes: 'C6:1 B5:1 A5:1.5 G5:.5 F5:1 E5:1 D5:1 C5:2' },
+];
+const Music = {
+  gain: null, on: true, idx: Math.floor(Math.random() * SONGS.length), timer: null, started: false, nodes: [],
+  start() {
+    if (this.started || !ac) return; this.started = true;
+    this.gain = ac.createGain(); this.gain.gain.value = this.on ? 1 : 0; this.gain.connect(ac.destination);
+    this.next(0.4);
+  },
+  note(f, t, d, vol, type) {
+    const o = ac.createOscillator(), g = ac.createGain(), o2 = ac.createOscillator(), g2 = ac.createGain();
+    o.type = type || 'triangle'; o.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; g2.gain.value = vol * 0.25;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.25, d));
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(this.gain); o.start(t); o2.start(t); o.stop(t + d + 0.1); o2.stop(t + d + 0.1);
+  },
+  next(delay) {
+    const song = SONGS[this.idx % SONGS.length]; this.idx++;
+    const spb = 60 / song.bpm, t0 = ac.currentTime + delay; let beat = 0;
+    for (const tok of song.notes.split(' ')) { const [n, d] = tok.split(':'), len = parseFloat(d); this.note(freqOf(n), t0 + beat * spb, len * spb * 0.95, 0.075, 'triangle'); beat += len; }
+    for (let b = 0, k = 0; b < beat; b += 4, k++) this.note(freqOf(song.bass[k % 2]), t0 + b * spb, spb * 3.6, 0.05, 'sine');
+    setTimeout(() => { try { if (typeof toastMusic === 'function') toastMusic(song.name); } catch (e) {} }, delay * 1000);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.next(1.5), (delay + beat * spb + 1.5) * 1000 - 1400);
+  },
+  toggle() { this.on = !this.on; if (this.gain) this.gain.gain.value = this.on ? 1 : 0; return this.on; },
+};
+function toastMusic(name) { if (scene && !$('game').classList.contains('hidden')) scene.toast('🎵 ' + name, 2600); }
+$('muteBtn').onclick = () => { muted = !muted; Music.toggle(); $('muteBtn').textContent = muted ? '🔇' : '🔊'; };
 
 /* ---------- 맵 생성(서버 없이 seed 만으로 모두 같은 맵) ---------- */
 function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -59,7 +95,7 @@ function mapOf(seed, z) {   // 10개 배경을 섞어서 돌려가며 끝없이
   return ids[z % NMAP];
 }
 const WIDTHS = [[128, 128, 112], [128, 112, 96], [112, 96, 128, 112], [112, 96, 96], [96, 96, 80]];
-const diffOf = (z) => Math.min(1, z / 12);
+const diffOf = (z) => Math.min(1, z / 24);
 const CP_W = 288;
 function cpX(seed, z) { if (z === 0) return W / 2; const r = mulberry32(hash(seed, z, 0x2545f491)); return Math.round(CP_W / 2 + 16 + r() * (W - CP_W - 32)); }
 const cpY = (z) => (z === 0 ? 0 : -z * ZONE_H - 40);
@@ -187,6 +223,7 @@ const THEMES = [
   { sky: ['#120f38', '#32196a', '#6a2f9a'], plat: ['#e0c8ff', '#9a6ad8'], deco: ['planet', 'star', 'comet'] },
   { sky: ['#cdeeff', '#e6f7ff', '#f8fdff'], plat: ['#eaf7ff', '#8cc4e8'], deco: ['crystal', 'flake', 'cloud'] },
 ];
+const THEME_NAMES = ['새벽 구름 나라', '별빛 밤하늘', '민트 하늘섬', '노을 언덕', '사탕 나라', '무지개 하늘', '오로라 나라', '풍선 나라', '보라빛 우주', '얼음 나라'];
 const rnd = mulberry32(777);
 function mk(w, h, fn) { const c = document.createElement('canvas'); c.width = Math.round(w * RES); c.height = Math.round(h * RES); const g = c.getContext('2d'); g.scale(RES, RES); fn(g, w, h); c.lw = w; c.lh = h; return c; }
 function cloudShape(g, x, y, s, fill) { g.fillStyle = fill; g.beginPath(); [[0, 0, 34], [32, -10, 28], [62, 2, 26], [-30, 6, 22], [90, 10, 18], [30, 14, 30]].forEach(([dx, dy, r]) => { g.moveTo(x + dx * s + r * s, y + dy * s); g.arc(x + dx * s, y + dy * s, r * s, 0, 7); }); g.fill(); }
@@ -304,7 +341,7 @@ async function joinGame() {
     $('join').classList.add('hidden'); $('game').classList.remove('hidden');
     applySync(res, true);
     if (!scene) scene = new Scene();
-    scene.start();
+    scene.start(); Music.start();
     schedulePoll(0);
   } catch (e) {
     $('joinBtn').disabled = false; $('joinMsg').textContent = '서버에 연결하지 못했어요. 잠시 후 다시 눌러 주세요!';
@@ -434,6 +471,7 @@ class Scene {
     if (now - this.trailAt > 300) { this.trailAt = now; this.sq++; this.trail.push([Math.round(this.p.x), Math.round(this.p.y), this.p.anim, this.p.flip ? 1 : 0]); if (this.trail.length > 20) this.trail.shift(); }
     this.bv += (-this.bs * 420 - this.bv * 5.2) * dt; this.bs += this.bv * dt; if (Math.abs(this.bs) < 0.003 && Math.abs(this.bv) < 0.08) { this.bs = 0; this.bv = 0; }
     if (this.p.vy > 520 && !this.p.ground) this.fallFx = Math.min(1, this.fallFx + dt * 6); else this.fallFx = Math.max(0, this.fallFx - dt * 5);
+    const zc = zoneOf(this.p.y); if (zc !== this.zoneShown) { if (this.zoneShown !== undefined && zc > 0) { this.toast(`🌈 ${THEME_NAMES[mapOf(Net.s.seed, zc)]}에 도착! (${heightOf(this.p.y)}m)`, 2200); sfx('gift'); } this.zoneShown = zc; }
     this.updateFriends(dt);
     this.camY += (Math.min(this.p.y - 330, -460) - this.camY) * Math.min(1, dt * 7);
     this.render();
@@ -672,5 +710,5 @@ $('tEnd').onclick = () => { if (confirm('지금 게임을 끝낼까요?')) admin
 $('tReset').onclick = () => admin('reset');
 if (new URLSearchParams(location.search).has('teacher')) { askTeacher(); }
 fit();
-window.__et = { Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
+window.__et = { Music, Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
 })();
