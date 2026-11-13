@@ -39,7 +39,7 @@ html,body{height:100%;background:#0d0b1f;overflow:hidden;font-family:"Malgun Got
 #join p{opacity:.85;margin-bottom:12px;font-size:clamp(13px,1.9vw,16px)}
 #nameInput{width:min(52%,300px);font-size:20px;font-family:inherit;padding:9px 14px;border-radius:14px;border:3px solid #ffe27a;text-align:center;color:#2a1c5a}
 .namerow{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:6px}
-#skinGrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:8px 0 14px}
+#skinGrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:8px 0 14px;max-height:230px;overflow-y:auto}
 .skin{background:rgba(255,255,255,.14);border:3px solid transparent;border-radius:12px;padding:2px;cursor:pointer}
 .skin.sel{border-color:#ffe27a;background:rgba(255,226,122,.3)}
 .skin{position:relative}
@@ -204,6 +204,6 @@ th{background:#ece6ff}
   </div>
 </div>
 <script src="questions.js?v=7"></script>
-<script src="game.js?v=9"></script>
+<script src="game.js?v=10"></script>
 </body>
 </html>

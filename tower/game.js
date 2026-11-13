@@ -187,7 +187,8 @@ const SPECIES = [   // 동글동글 말랑 친구들: 색 3가지 × (무늬 없
   { n: 'pig', cols: ['#ffc2d2', '#ffdce8', '#f8b4e0', '#ffe2a8', '#d4c4ff'], patch: ['#ff90ae', '#f4a8c4', '#e88ac8', '#f0b050', '#a58ae0'] },
   { n: 'mouse', cols: ['#e6e6f2', '#fbe0d0', '#d6e8ff', '#ffd4e8', '#d4f5d0'], patch: ['#b4b4cc', '#eab8a0', '#a8c8f0', '#f09ac4', '#8fcf88'] },
 ];
-const NSKIN = 50;
+const NSKIN = 86, JELLY0 = 50;   // 50~85 = 젤리 친구들(이미지)
+const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; SHEET.src = 'chars.png?v=1';
 const OUT = '#8a5646';
 const hasJong = (n) => { const c = String(n).charCodeAt(String(n).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0; };
 const iga = (n) => n + (hasJong(n) ? '이' : '가'), eulreul = (n) => n + (hasJong(n) ? '을' : '를');
@@ -197,7 +198,21 @@ function shade(hex, a) {   // 색을 밝게(+)/어둡게(-)
   const n = parseInt(hex.slice(1), 16), f = (c) => Math.max(0, Math.min(255, Math.round(a >= 0 ? c + (255 - c) * a : c * (1 + a))));
   return (SH[k] = `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`);
 }
+function drawJelly(g, skin, x, y, o) {
+  if (!sheetOk) return;
+  const k = skin - JELLY0, s = o.scale || 1.35, t = o.t, run = o.anim === 1;
+  let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.03;
+  if (run) { sx = 1 + Math.sin(t * 16) * 0.05; sy = 1 - Math.sin(t * 16) * 0.07; }
+  const bs = o.bs || 0, bv = o.bv || 0; sy *= 1 + bs; sx *= 1 - bs * 0.8;
+  const hop = run ? Math.abs(Math.sin(t * 8)) * 3 : 0, D = 46;
+  g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s, s);
+  g.transform(1, 0, Math.max(-0.35, Math.min(0.35, bv * 0.02)), 1, 0, 0); g.scale(sx, sy);
+  if (o.anim === 2) g.rotate(Math.sin(t * 14) * 0.08);
+  g.drawImage(SHEET, (k % 6) * 128, ((k / 6) | 0) * 128, 128, 128, -D / 2, -D + 2, D, D);
+  g.restore();
+}
 function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, flip, scale, anim, bs, bv}
+  if (skin >= JELLY0) return drawJelly(g, skin, x, y, o);
   const sp = SPECIES[skin % 10], v = Math.floor(skin / 10) % 5, col = sp.cols[v], pc = sp.patch[v], n = sp.n, pv = v === 3 ? 1 : v === 4 ? 2 : v;
   const s = o.scale || 1.35, t = o.t, run = o.anim === 1;
   let sx = 1 + Math.sin(t * 2.2) * 0.02, sy = 1 - Math.sin(t * 2.2) * 0.03;
@@ -258,7 +273,7 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, fl
   if (v === 4) { for (let k = 0; k < 5; k++) { const a = k * Math.PI * 2 / 5; ell(-10 + Math.cos(a) * 4.2, BY - RY + 1 + Math.sin(a) * 4.2, 3.2, 3.2, '#ffffff'); } ell(-10, BY - RY + 1, 2.4, 2.4, '#ffd23f'); }   // 꽃
   g.restore();
 }
-function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); drawChar(g, skin, 32, 56, { t: 0, anim: 0, scale: 1.2 }); }
+function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); g.clearRect(0, 0, 64, 64); drawChar(g, skin, 32, 56, { t: 0, anim: 0, scale: 1.2 }); }
 
 /* ---------- 배경: 직접 그린 10가지 하늘 나라 ---------- */
 const THEMES = [
@@ -365,26 +380,28 @@ const Shop = {   // 코인·구매한 캐릭터·꼬리 효과 (이 크롬북에
   coins: 0, owned: new Set(), trails: new Set(), trail: 0, dirty: false, free: new URLSearchParams(location.search).has('unlock'),
   load() { try { const o = JSON.parse(localStorage.getItem('et_shop') || '{}'); this.coins = o.coins | 0; this.owned = new Set(o.owned || []); this.trails = new Set(o.trails || []); this.trail = o.trail | 0; } catch (e) {} if (Number.isInteger(profile.skin) && profile.skin >= 10) this.owned.add(profile.skin); },
   save() { try { localStorage.setItem('et_shop', JSON.stringify({ coins: this.coins, owned: [...this.owned], trails: [...this.trails], trail: this.trail })); } catch (e) {} },
-  price(i) { return [0, 30, 50, 70, 90][Math.floor(i / 10) % 5]; },
-  has(i) { return this.free || i < 10 || this.owned.has(i); },
+  price(i) { return i >= JELLY0 ? (i < 60 ? 0 : i < 70 ? 30 : 50) : [0, 30, 50, 70, 90][Math.floor(i / 10) % 5]; },
+  has(i) { return this.free || i < 10 || (i >= JELLY0 && i < 60) || this.owned.has(i); },
   add(n) { this.coins += n; this.dirty = true; },
   flush() { if (this.dirty) { this.dirty = false; this.save(); } },
 };
 Shop.load();
-let skin = Number.isInteger(profile.skin) && profile.skin < 50 && Shop.has(profile.skin) ? profile.skin : Math.floor(Math.random() * 10);
+let skin = Number.isInteger(profile.skin) && profile.skin < NSKIN && Shop.has(profile.skin) ? profile.skin : JELLY0 + Math.floor(Math.random() * 10);
 $('nameInput').value = profile.name || '';
 const grid = $('skinGrid');
 let buyArm = -1;
 const setMsg = (t) => { $('joinMsg').textContent = t; };
 function refreshShop() {
   $('coinNow').textContent = '🪙 ' + Shop.coins;
-  [...grid.children].forEach((b, i) => { b.classList.toggle('sel', i === skin); b.classList.toggle('locked', !Shop.has(i)); b.querySelector('.lock').textContent = Shop.has(i) ? '' : '🔒' + Shop.price(i); });
+  [...grid.children].forEach((b) => { const i = +b.dataset.i; b.classList.toggle('sel', i === skin); b.classList.toggle('locked', !Shop.has(i)); b.querySelector('.lock').textContent = Shop.has(i) ? '' : '🔒' + Shop.price(i); });
   [...$('trailRow').children].forEach((b) => { const k = +b.dataset.k; b.classList.toggle('sel', k === Shop.trail); b.querySelector('i').textContent = k === 0 || Shop.trails.has(k) || Shop.free ? '' : ' 🪙' + b.dataset.p; });
   [...$('teamRow').children].forEach((b) => b.classList.toggle('sel', +b.dataset.k === (profile.team | 0)));
 }
 const armBuy = (id, text) => { buyArm = id; setMsg(text); sfx('pop'); setTimeout(() => { if (buyArm === id) { buyArm = -1; setMsg(''); } }, 3500); };
-for (let i = 0; i < NSKIN; i++) {
-  const b = document.createElement('button'); b.className = 'skin'; b.type = 'button';
+const SKORDER = []; for (let i = JELLY0; i < NSKIN; i++) SKORDER.push(i); for (let i = 0; i < JELLY0; i++) SKORDER.push(i);
+function refreshPreviews() { [...grid.children].forEach((b) => previewSkin(b.querySelector('canvas'), +b.dataset.i)); }
+for (const i of SKORDER) {
+  const b = document.createElement('button'); b.className = 'skin'; b.type = 'button'; b.dataset.i = i;
   const c = document.createElement('canvas'); previewSkin(c, i); const lk = document.createElement('span'); lk.className = 'lock'; b.append(c, lk);
   b.onclick = () => {
     unlock();
