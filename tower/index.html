@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>잉글리시 밸리 타워</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 10 10%27%3E%3Ctext y=%278.5%27 font-size=%278%27%3E🏰%3C/text%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0d0b1f;overflow:hidden;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#fff;-webkit-user-select:none;user-select:none}
+.hidden{display:none!important}
+#stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100vw,177.78vh);height:min(56.25vw,100vh);background:#000;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.u{font-size:calc(var(--u,1)*16px)}
+.hud{position:absolute;left:0;right:0;top:0;display:flex;gap:calc(var(--u)*8px);padding:calc(var(--u)*8px);pointer-events:none;align-items:flex-start;font-size:calc(var(--u)*16px)}
+.chip{background:rgba(20,16,50,.62);border:2px solid rgba(255,255,255,.35);border-radius:calc(var(--u)*14px);padding:calc(var(--u)*5px) calc(var(--u)*12px);font-weight:700;backdrop-filter:blur(2px);white-space:nowrap}
+.chip.gold{color:#ffe27a}
+#hudTimer{font-size:calc(var(--u)*26px);min-width:calc(var(--u)*92px);text-align:center;letter-spacing:1px}
+#hudTimer.warn{color:#ff7a7a;animation:bl .5s infinite alternate}
+@keyframes bl{to{opacity:.45}}
+.sp{flex:1}
+.energy{width:calc(var(--u)*150px);height:calc(var(--u)*14px);background:rgba(0,0,0,.45);border-radius:9px;overflow:hidden;margin-top:calc(var(--u)*4px)}
+#eFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23f,#ff9a3c);transition:width .15s}
+#eFill.low{background:#ff5a5a}
+#phase{position:absolute;left:0;right:0;bottom:calc(var(--u)*8px);text-align:center;font-size:calc(var(--u)*15px);font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none}
+#center{position:absolute;left:0;right:0;top:34%;text-align:center;font-size:calc(var(--u)*96px);font-weight:900;color:#fff;text-shadow:0 4px 0 #6a4fc0,0 0 24px rgba(255,255,255,.6);pointer-events:none}
+#center.small{font-size:calc(var(--u)*34px);top:40%}
+#toast{position:absolute;left:50%;top:calc(var(--u)*64px);transform:translateX(-50%);background:rgba(30,24,70,.88);border:2px solid #ffe27a;padding:calc(var(--u)*8px) calc(var(--u)*18px);border-radius:calc(var(--u)*20px);font-size:calc(var(--u)*17px);font-weight:700;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+.btn{font-family:inherit;font-weight:800;border:0;border-radius:calc(var(--u)*14px);padding:calc(var(--u)*10px) calc(var(--u)*22px);font-size:calc(var(--u)*18px);cursor:pointer;color:#2a1c5a;background:linear-gradient(#fff3b8,#ffd23f);box-shadow:0 4px 0 #b8860b}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b8860b}
+.btn.sm{font-size:calc(var(--u)*13px);padding:calc(var(--u)*5px) calc(var(--u)*10px);border-radius:10px;box-shadow:0 3px 0 #b8860b;pointer-events:auto}
+.btn.ghost{background:rgba(255,255,255,.14);color:#fff;box-shadow:none;border:2px solid rgba(255,255,255,.35)}
+/* 입장 */
+#join{position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,#4b3b9a,#1a1442 70%);display:flex;align-items:center;justify-content:center;z-index:5}
+#join .card{width:min(94vw,760px);max-height:96vh;overflow:auto;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);border-radius:24px;padding:22px 26px;text-align:center}
+#join h1{font-size:clamp(24px,4.2vw,38px);margin-bottom:4px;text-shadow:0 3px 0 #6a4fc0}
+#join p{opacity:.85;margin-bottom:12px;font-size:clamp(13px,1.9vw,16px)}
+#nameInput{width:min(100%,320px);font-size:20px;font-family:inherit;padding:10px 14px;border-radius:14px;border:3px solid #ffe27a;text-align:center;margin-bottom:10px;color:#2a1c5a}
+#skinGrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:8px 0 14px}
+.skin{background:rgba(255,255,255,.14);border:3px solid transparent;border-radius:12px;padding:2px;cursor:pointer}
+.skin.sel{border-color:#ffe27a;background:rgba(255,226,122,.3)}
+.skin canvas{width:100%;display:block}
+#joinMsg{min-height:22px;color:#ffb3b3;font-weight:700;margin-bottom:6px}
+#joinBtn{font-size:22px;padding:12px 40px}
+#tBtn{position:absolute;right:10px;bottom:10px;z-index:9}
+/* 퀴즈 */
+#quiz{position:absolute;inset:0;background:rgba(10,8,34,.72);display:flex;align-items:center;justify-content:center;z-index:4}
+#quiz .box{width:80%;background:#fffaf0;color:#2a1c5a;border-radius:calc(var(--u)*24px);padding:calc(var(--u)*20px) calc(var(--u)*26px);border:4px solid #ffd23f;box-shadow:0 10px 0 rgba(0,0,0,.25)}
+#qTag{font-weight:800;color:#a6571f;font-size:calc(var(--u)*15px)}
+#qQ{font-size:calc(var(--u)*25px);font-weight:800;margin:calc(var(--u)*6px) 0 calc(var(--u)*2px);white-space:pre-wrap;line-height:1.35}
+#qKo{font-size:calc(var(--u)*16px);color:#6b5aa8;margin-bottom:calc(var(--u)*10px);min-height:calc(var(--u)*20px)}
+#qChoices{display:grid;gap:calc(var(--u)*9px)}
+#qChoices button{font-family:inherit;text-align:left;font-size:calc(var(--u)*21px);font-weight:700;padding:calc(var(--u)*10px) calc(var(--u)*16px);border-radius:calc(var(--u)*14px);border:3px solid #cdbff5;background:#fff;color:#2a1c5a;cursor:pointer}
+#qChoices button b{display:inline-block;width:calc(var(--u)*28px);height:calc(var(--u)*28px);line-height:calc(var(--u)*28px);text-align:center;border-radius:50%;background:#6a4fc0;color:#fff;margin-right:calc(var(--u)*12px);font-size:calc(var(--u)*16px)}
+#qChoices button:hover:not(:disabled){border-color:#6a4fc0}
+#qChoices button.ok{background:#b8f5c3;border-color:#2e9e4a}
+#qChoices button.no{background:#ffc9c9;border-color:#d04a4a}
+#qFeed{min-height:calc(var(--u)*26px);margin-top:calc(var(--u)*8px);font-weight:800;font-size:calc(var(--u)*18px)}
+/* 결과 */
+#result{position:absolute;inset:0;background:rgba(10,8,34,.82);display:flex;align-items:center;justify-content:center;z-index:6;text-align:center}
+#result .box{background:rgba(255,255,255,.12);border:3px solid #ffe27a;border-radius:24px;padding:calc(var(--u)*20px) calc(var(--u)*34px);min-width:60%}
+#result h2{font-size:calc(var(--u)*36px);margin-bottom:6px}
+#myRank{font-size:calc(var(--u)*20px);color:#ffe27a;font-weight:800;margin-bottom:10px}
+#rankList{text-align:left;list-style:none;font-size:calc(var(--u)*19px);font-weight:700}
+#rankList li{padding:3px 8px;border-radius:8px}
+#rankList li.me{background:rgba(255,226,122,.3)}
+/* 교사 */
+#teacher{position:absolute;inset:0;background:#f4f0ff;color:#2a1c5a;overflow:auto;z-index:8;padding:16px}
+#teacher h1{font-size:26px;margin-bottom:10px}
+.tgrid{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:16px;align-items:start}
+@media(max-width:820px){.tgrid{grid-template-columns:1fr}}
+.panel{background:#fff;border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(70,40,150,.15)}
+#tTime{font-size:64px;font-weight:900;text-align:center;letter-spacing:2px;color:#4b3b9a}
+#tState{text-align:center;font-weight:800;margin-bottom:8px}
+.row{display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.tb{font-family:inherit;font-weight:800;font-size:18px;border:0;border-radius:14px;padding:12px 18px;cursor:pointer;background:#6a4fc0;color:#fff}
+.tb.g{background:#2e9e4a}.tb.r{background:#d04a4a}.tb.o{background:#e08a1a}.tb.x{background:#8a84a8}
+table{width:100%;border-collapse:collapse}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid #e3dcf7;font-size:16px}
+th{background:#ece6ff}
+.chips span{display:inline-block;background:#ece6ff;border-radius:12px;padding:3px 10px;margin:3px;font-weight:700}
+</style>
+</head>
+<body>
+<div id="stage" class="u">
+  <canvas id="cv" width="960" height="540"></canvas>
+
+  <div id="join">
+    <div class="card">
+      <h1>🏰 잉글리시 밸리 타워</h1>
+      <p>끝없이 높은 탑을 친구들과 함께 올라가요! 닉네임을 쓰고 캐릭터를 골라요.</p>
+      <input id="nameInput" maxlength="8" placeholder="닉네임 (8글자)" autocomplete="off">
+      <div id="skinGrid"></div>
+      <div id="joinMsg"></div>
+      <button class="btn" id="joinBtn">입장하기 🚀</button>
+    </div>
+    <button class="btn sm ghost" id="tBtn">👩‍🏫 교사용</button>
+  </div>
+
+  <div id="game" class="hidden">
+    <div class="hud">
+      <div class="chip" id="hudH">📏 0 m</div>
+      <div class="chip gold" id="hudScore">⭐ 0점</div>
+      <div><div class="chip" id="hudE" style="padding:calc(var(--u)*3px) calc(var(--u)*10px)">⚡ 에너지<div class="energy"><div id="eFill"></div></div></div></div>
+      <div class="sp"></div>
+      <div class="chip" id="hudTimer">--:--</div>
+      <div class="chip" id="hudN">👥 1명</div>
+      <button class="btn sm ghost" id="muteBtn">🔊</button>
+      <button class="btn sm ghost" id="tBtn2">👩‍🏫</button>
+    </div>
+    <div id="phase"></div>
+    <div id="center" class="hidden"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="quiz" class="hidden"><div class="box">
+    <div id="qTag"></div><div id="qQ"></div><div id="qKo"></div>
+    <div id="qChoices"></div><div id="qFeed"></div>
+  </div></div>
+
+  <div id="result" class="hidden"><div class="box">
+    <h2>🏁 게임 끝!</h2><div id="myRank"></div><ol id="rankList"></ol>
+  </div></div>
+</div>
+
+<div id="teacher" class="hidden">
+  <h1>👩‍🏫 선생님 화면 · 잉글리시 밸리 타워 <button class="tb x" id="toStudent" style="font-size:14px;padding:6px 12px;margin-left:10px">🎮 학생 화면으로</button></h1>
+  <div class="tgrid">
+    <div class="panel">
+      <div id="tState">연습 시간</div>
+      <div id="tTime">05:00</div>
+      <div class="row">
+        <button class="tb o" id="tMinus">➖ 1분</button>
+        <button class="tb o" id="tPlus">➕ 1분</button>
+      </div>
+      <div class="row">
+        <button class="tb g" id="tStart">▶ 출발!</button>
+        <button class="tb r" id="tEnd">⏹ 끝내기</button>
+        <button class="tb x" id="tReset">↺ 연습 시간으로</button>
+      </div>
+      <div id="tNote" style="text-align:center;color:#6b5aa8;font-size:14px;margin-top:6px">출발 전에는 학생들이 자유롭게 연습할 수 있어요. 시간은 연습 중·게임 중 모두 1분씩 바꿀 수 있어요.</div>
+      <div id="tN" style="text-align:center;font-weight:800;margin-top:10px">접속 0명</div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:8px">🏆 실시간 순위 <span style="font-weight:400;font-size:13px;color:#6b5aa8">(점수 = 최고 높이 m + 정답 × 30)</span></h3>
+      <div id="tLobby" class="chips"></div>
+      <table><thead><tr><th>등수</th><th>이름</th><th>점수</th><th>정답</th><th>최고 높이</th></tr></thead><tbody id="tBody"></tbody></table>
+    </div>
+  </div>
+</div>
+<script src="questions.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
