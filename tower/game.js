@@ -937,7 +937,7 @@ class Scene {
   }
   drawHazard(g, hz) {
     const x = hzX(hz), y = hz.y + Math.sin(this.t * 2 + hz.x0) * 6, fl = Math.sin(this.t * 14 + hz.x0) * 0.6;
-    g.save(); g.translate(x, y); g.scale(-hz.d, 1); g.lineJoin = 'round';
+    g.save(); g.translate(x, y); g.scale(hz.d, 1); g.lineJoin = 'round';
     if (hz.k === 'bird') {
       g.fillStyle = '#ff7a8a'; g.strokeStyle = '#a8324a'; g.lineWidth = 2;
       g.beginPath(); g.ellipse(0, 0, 17, 12, 0, 0, 7); g.fill(); g.stroke();
