@@ -10,8 +10,13 @@ const stageEl = $('stage');
 const QS = window.QUESTIONS || [];
 
 /* ---------- 화면 크기 ---------- */
-function fit() { stageEl.style.setProperty('--u', (stageEl.clientWidth / 960).toFixed(3)); }
-window.addEventListener('resize', fit); fit();
+let RES = 1;
+function fit() {
+  stageEl.style.setProperty('--u', (stageEl.clientWidth / 960).toFixed(3));
+  const r = Math.min(2, Math.max(1, Math.round((stageEl.clientWidth * (window.devicePixelRatio || 1) / 960) * 4) / 4));   // 선명하게: 화면 크기에 맞춰 해상도 올림
+  if (r !== RES || cv.width !== Math.round(960 * r)) { RES = r; cv.width = Math.round(960 * RES); cv.height = Math.round(540 * RES); for (const k in SPR) delete SPR[k]; skyCache.length = 0; }
+}
+window.addEventListener('resize', fit);
 
 /* ---------- 소리 ---------- */
 let ac = null, muted = false;
@@ -183,7 +188,7 @@ const THEMES = [
   { sky: ['#cdeeff', '#e6f7ff', '#f8fdff'], plat: ['#eaf7ff', '#8cc4e8'], deco: ['crystal', 'flake', 'cloud'] },
 ];
 const rnd = mulberry32(777);
-function mk(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; }
+function mk(w, h, fn) { const c = document.createElement('canvas'); c.width = Math.round(w * RES); c.height = Math.round(h * RES); const g = c.getContext('2d'); g.scale(RES, RES); fn(g, w, h); c.lw = w; c.lh = h; return c; }
 function cloudShape(g, x, y, s, fill) { g.fillStyle = fill; g.beginPath(); [[0, 0, 34], [32, -10, 28], [62, 2, 26], [-30, 6, 22], [90, 10, 18], [30, 14, 30]].forEach(([dx, dy, r]) => { g.moveTo(x + dx * s + r * s, y + dy * s); g.arc(x + dx * s, y + dy * s, r * s, 0, 7); }); g.fill(); }
 const SPR = {};
 function sprite(kind) {
@@ -242,14 +247,14 @@ function decoList(i) {
 }
 const decoCache = [];
 function drawTheme(g, i, a, cam, t) {
-  g.globalAlpha = a; g.drawImage(skyOf(i), 0, 0);
+  g.globalAlpha = a; g.drawImage(skyOf(i), 0, 0, W, H);
   const L = decoCache[i] || (decoCache[i] = decoList(i)), LOOP = 900;
   for (const d of L) {
-    const sp = sprite(d.kind); if (sp.width < 4) continue;
+    const sp = sprite(d.kind); if (!sp.lw || sp.lw < 4) continue;
     const y = (((d.y + cam * d.f) % LOOP) + LOOP) % LOOP - 180;
     const x = d.x + Math.sin(t * 0.3 + d.p) * 14 + d.dx * t * 0.2;
     const xx = ((x % (W + 240)) + W + 240) % (W + 240) - 120;
-    const w = sp.width * d.s, h = sp.height * d.s;
+    const w = sp.lw * d.s, h = sp.lh * d.s;
     g.globalAlpha = a * (d.kind === 'cloud' ? 0.9 : 1); g.drawImage(sp, xx - w / 2, y - h / 2, w, h);
   }
   g.globalAlpha = 1;
@@ -455,7 +460,7 @@ class Scene {
     const py = p.y;
     p.vy = Math.min(950, p.vy + PHYS.g * dt);
     p.x += p.vx * dt; p.y += p.vy * dt;
-    if (p.x < 14) p.x = 14; if (p.x > W - 14) p.x = W - 14;
+    if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W;   // 왼쪽 끝으로 나가면 오른쪽에서, 오른쪽 끝으로 나가면 왼쪽에서
     p.ground = false;
     {
       const z = zoneOf(p.y);
@@ -519,6 +524,7 @@ class Scene {
   /* ----- 그리기 ----- */
   render() {
     const g = ctx, cam = this.camY, p = this.p, s = Net.s;
+    g.setTransform(RES, 0, 0, RES, 0, 0);
     const ox = this.shake > 0 ? (Math.random() - 0.5) * 8 * this.shake * 6 : 0; this.shake = Math.max(0, this.shake - 0.016);
     // 배경: 구역마다 다른 하늘, 경계에서 부드럽게 섞기
     const u = -(cam + 270) / ZONE_H, zi = Math.max(0, Math.floor(u)), f = u - zi;
@@ -538,7 +544,7 @@ class Scene {
     }
     for (const fr of Net.friends.values()) {
       const c = fr.cur; if (c.y < cam - 80 || c.y > cam + H + 80) continue;
-      drawChar(g, fr.skin, c.x, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25, bs: (fr.bs || 0) + (c.a === 3 ? 0.08 : 0), bv: fr.bv || 0 });
+      for (const off of (c.x < 50 ? [0, W] : c.x > W - 50 ? [0, -W] : [0])) drawChar(g, fr.skin, c.x + off, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25, bs: (fr.bs || 0) + (c.a === 3 ? 0.08 : 0), bv: fr.bv || 0 });
       this.label(g, fr.name, c.x, c.y - 68, '#ffffff');
     }
     if (this.fallFx > 0.05) {   // 슈웅~ 떨어지는 속도선
@@ -547,7 +553,7 @@ class Scene {
         g.strokeStyle = `rgba(255,255,255,${(0.55 * this.fallFx).toFixed(2)})`; g.lineWidth = 3; g.beginPath(); g.moveTo(lx, p.y - 50 - ((k * 37) % 30)); g.lineTo(lx, p.y - 50 - ((k * 37) % 30) - len); g.stroke(); }
       g.restore();
     }
-    drawChar(g, profile.skin, p.x, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.35, bs: this.bs + (p.ground ? 0 : clamp(-p.vy / 2600, -0.12, 0.16)), bv: this.bv });
+    for (const off of (p.x < 50 ? [0, W] : p.x > W - 50 ? [0, -W] : [0])) drawChar(g, profile.skin, p.x + off, p.y, { t: this.t, anim: p.anim, flip: p.flip, scale: 1.35, bs: this.bs + (p.ground ? 0 : clamp(-p.vy / 2600, -0.12, 0.16)), bv: this.bv });
     if (this.fallFx > 0.5) { g.save(); g.globalAlpha = Math.min(1, this.fallFx); g.font = '900 26px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.lineWidth = 6; g.strokeStyle = '#7a62c8'; g.strokeText('슈웅~', p.x + 52, p.y - 90); g.fillStyle = '#fff'; g.fillText('슈웅~', p.x + 52, p.y - 90); g.restore(); }
     this.label(g, profile.name, p.x, p.y - 72, '#ffe27a');
     for (let i = this.puffs.length - 1; i >= 0; i--) { const q = this.puffs[i]; q.l -= 0.016; if (q.l <= 0) { this.puffs.splice(i, 1); continue; } q.x += q.vx * 0.016; q.y += q.vy * 0.016; g.globalAlpha = q.l * 2; g.fillStyle = '#fff'; g.beginPath(); g.arc(q.x, q.y, 3 + (0.4 - q.l) * 8, 0, 7); g.fill(); }
@@ -665,5 +671,6 @@ $('tStart').onclick = () => { const s = tData && tData.s; if (s && s.status === 
 $('tEnd').onclick = () => { if (confirm('지금 게임을 끝낼까요?')) admin('end'); };
 $('tReset').onclick = () => admin('reset');
 if (new URLSearchParams(location.search).has('teacher')) { askTeacher(); }
+fit();
 window.__et = { Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
 })();
