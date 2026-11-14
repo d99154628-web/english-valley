@@ -426,7 +426,14 @@ function sprite(kind) {
   return (SPR[kind] = c);
 }
 const skyCache = [];
+const BGIMG = new Set([10, 12, 13, 14, 33, 37, 38, 39]);   // 플로우로 만든 그림 배경이 있는 맵 번호 (bg/번호.jpg)
+const bgState = {};
+function loadBg(i) {   // 필요할 때 한 번만 불러와서, 다 오면 기존 하늘 그림을 바꿔 끼움 (실패하면 그대로 코드 배경)
+  if (bgState[i]) return; bgState[i] = 1;
+  const im = new Image(); im.onload = () => { skyCache[i] = mk(W, H, (g) => { g.drawImage(im, 0, 0, W, H); }); skyCache[i].img = 1; }; im.src = 'bg/' + i + '.jpg?v=1';
+}
 function skyOf(i) {   // 하늘 + 해/달/무지개/오로라 (한 번만 그려 둠)
+  if (BGIMG.has(i) && !bgState[i]) loadBg(i);
   if (skyCache[i]) return skyCache[i];
   const T = THEMES[i], R = mulberry32(100 + i);
   return (skyCache[i] = mk(W, H, (g) => {
@@ -1081,9 +1088,9 @@ class Scene {
   }
   drawCrown(g, x, y, t) {   // 👑 젤리 왕관: 한 번만 그려 두고(캐시) 가져다 쓰니까 렉 없음
     const sp = sprite('jcrown'), w = sp.lw || 54, h = sp.lh || 44, bob = Math.sin(t * 4) * 1.5, sc = 1 + Math.sin(t * 5) * 0.03;
-    g.save(); g.translate(x, y + bob); g.rotate(Math.sin(t * 2) * 0.06); g.scale(sc, 1 / sc);
+    g.save(); g.translate(x, y + bob + 6); g.rotate(Math.sin(t * 2) * 0.06); g.scale(0.5 * sc, 0.5 / sc);
     g.drawImage(sp, -w / 2, -h * 0.62, w, h);
-    const tw = 0.5 + 0.5 * Math.sin(t * 6), ks = sprite('sparkle'); if (ks.lw) { g.globalAlpha = 0.4 + 0.6 * tw; g.drawImage(ks, 8, -h * 0.55, 13 * (0.6 + tw * 0.5), 13 * (0.6 + tw * 0.5)); }
+    const tw = 0.5 + 0.5 * Math.sin(t * 6), ks = sprite('sparkle'); if (ks.lw) { g.globalAlpha = 0.4 + 0.6 * tw; g.drawImage(ks, 8, -h * 0.55, 20 * (0.6 + tw * 0.5), 20 * (0.6 + tw * 0.5)); }
     g.restore();
   }
   drawItem(g, it) {
