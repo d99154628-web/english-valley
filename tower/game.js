@@ -390,6 +390,16 @@ function sprite(kind) {
     case 'petal': c = mk(20, 20, (g) => { g.fillStyle = 'rgba(255,170,200,.9)'; g.beginPath(); g.ellipse(10, 10, 8, 5, 0.6, 0, 7); g.fill(); }); break;
     case 'torii': c = mk(200, 160, (g) => { g.fillStyle = '#e8402a'; g.fillRect(36, 40, 14, 118); g.fillRect(150, 40, 14, 118); g.fillRect(14, 30, 172, 14); g.fillRect(28, 56, 144, 10); g.fillStyle = '#2a1a1a'; g.fillRect(8, 22, 184, 9); }); break;
     case 'lantern': c = mk(40, 70, (g) => { g.strokeStyle = '#6a3a2a'; g.lineWidth = 2; g.beginPath(); g.moveTo(20, 0); g.lineTo(20, 12); g.stroke(); const gr = g.createRadialGradient(20, 38, 2, 20, 38, 22); gr.addColorStop(0, '#fff0a0'); gr.addColorStop(1, '#ff5a3a'); g.fillStyle = gr; g.beginPath(); g.ellipse(20, 38, 15, 22, 0, 0, 7); g.fill(); g.fillStyle = '#7a2a1a'; g.fillRect(10, 14, 20, 5); g.fillRect(10, 58, 20, 5); }); break;
+    case 'jcrown': c = mk(54, 44, (g) => {
+      g.lineJoin = 'round';
+      const body = (path, c0, c1, c2) => { const gr = g.createLinearGradient(0, 6, 0, 40); gr.addColorStop(0, c0); gr.addColorStop(0.5, c1); gr.addColorStop(1, c2); g.fillStyle = gr; path(); g.fill(); };
+      const P = () => { g.beginPath(); g.moveTo(8, 36); g.quadraticCurveTo(5, 22, 6, 12); g.quadraticCurveTo(15, 20, 19, 24); g.quadraticCurveTo(21, 12, 27, 5); g.quadraticCurveTo(33, 12, 35, 24); g.quadraticCurveTo(39, 20, 48, 12); g.quadraticCurveTo(49, 22, 46, 36); g.quadraticCurveTo(27, 41, 8, 36); g.closePath(); };
+      g.shadowColor = 'rgba(200,120,0,.45)'; g.shadowBlur = 5; body(P, '#fff2a0', '#ffd23f', '#f0a21a');
+      g.shadowBlur = 0; g.lineWidth = 2; g.strokeStyle = 'rgba(214,140,10,.85)'; P(); g.stroke();
+      [[6, 11, 3.6, '#ff7aa8'], [27, 4, 4, '#7ad8ff'], [48, 11, 3.6, '#ff7aa8']].forEach(([x, y, r, col]) => { const gr = g.createRadialGradient(x - 1, y - 1, 0.5, x, y, r); gr.addColorStop(0, '#fff'); gr.addColorStop(0.4, col); gr.addColorStop(1, col); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1; g.stroke(); });
+      [[17, 31], [27, 31], [37, 31]].forEach(([x, y], k) => { g.fillStyle = k === 1 ? '#ff7aa8' : '#7ad8ff'; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(x - 1, y - 1, 1, 0, 7); g.fill(); });
+      g.fillStyle = 'rgba(255,255,255,.65)'; g.beginPath(); g.ellipse(17, 14, 6, 2.4, -0.7, 0, 7); g.fill(); g.beginPath(); g.ellipse(11, 28, 3, 1.4, -1.1, 0, 7); g.fill();
+    }); break;
     case 'sparkle': c = mk(26, 26, (g) => { const gr = g.createRadialGradient(13, 13, 0, 13, 13, 12); gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 26, 26); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(13, 1); g.lineTo(15, 11); g.lineTo(25, 13); g.lineTo(15, 15); g.lineTo(13, 25); g.lineTo(11, 15); g.lineTo(1, 13); g.lineTo(11, 11); g.fill(); }); break;
     case 'dust': c = mk(16, 16, (g) => { const gr = g.createRadialGradient(8, 8, 0, 8, 8, 7); gr.addColorStop(0, 'rgba(255,245,220,.75)'); gr.addColorStop(1, 'rgba(255,245,220,0)'); g.fillStyle = gr; g.fillRect(0, 0, 16, 16); }); break;
     case 'confetti': c = mk(14, 10, (g) => { g.fillStyle = ['#ff6fa8', '#6fc8ff', '#ffd23f', '#8ae068'][Math.floor(rnd() * 4)]; g.fillRect(2, 2, 10, 5); }); break;
@@ -1069,11 +1079,12 @@ class Scene {
     g.beginPath(); g.moveTo(x - 5, by + 33); g.lineTo(x + 5, by + 33); g.lineTo(x, by + 40); g.closePath(); g.fillStyle = '#ff4f7e'; g.fill(); g.stroke();
     g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(x - 10, by - 12, 5, 9, -0.5, 0, 7); g.fill(); g.restore();
   }
-  drawCrown(g, x, y, t) {
-    g.save(); g.translate(x, y + Math.sin(t * 4) * 1.5); g.rotate(Math.sin(t * 2) * 0.06);
-    g.beginPath(); g.moveTo(-15, 10); g.lineTo(-18, -10); g.lineTo(-8, -2); g.lineTo(0, -15); g.lineTo(8, -2); g.lineTo(18, -10); g.lineTo(15, 10); g.closePath();
-    g.fillStyle = '#ffd23f'; g.fill(); g.lineWidth = 2.4; g.strokeStyle = '#b8860b'; g.lineJoin = 'round'; g.stroke();
-    g.fillStyle = '#ff5a7a'; g.beginPath(); g.arc(0, 3, 2.8, 0, 7); g.fill(); g.fillStyle = '#5ac8ff'; g.beginPath(); g.arc(-9, 5, 2, 0, 7); g.arc(9, 5, 2, 0, 7); g.fill(); g.restore();
+  drawCrown(g, x, y, t) {   // 👑 젤리 왕관: 한 번만 그려 두고(캐시) 가져다 쓰니까 렉 없음
+    const sp = sprite('jcrown'), w = sp.lw || 54, h = sp.lh || 44, bob = Math.sin(t * 4) * 1.5, sc = 1 + Math.sin(t * 5) * 0.03;
+    g.save(); g.translate(x, y + bob); g.rotate(Math.sin(t * 2) * 0.06); g.scale(sc, 1 / sc);
+    g.drawImage(sp, -w / 2, -h * 0.62, w, h);
+    const tw = 0.5 + 0.5 * Math.sin(t * 6), ks = sprite('sparkle'); if (ks.lw) { g.globalAlpha = 0.4 + 0.6 * tw; g.drawImage(ks, 8, -h * 0.55, 13 * (0.6 + tw * 0.5), 13 * (0.6 + tw * 0.5)); }
+    g.restore();
   }
   drawItem(g, it) {
     const x = it.x, y = it.y + Math.sin(this.t * 3 + it.x) * 4;
@@ -1350,5 +1361,5 @@ $('evMoon').onclick = () => admin('event', { k: 'moon' });
 $('evBalloon').onclick = () => admin('event', { k: 'balloon' });
 if (new URLSearchParams(location.search).has('teacher')) { askTeacher(); }
 fit();
-window.__et = { drawTheme, THEMES, Music, Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
+window.__et = { sprite, drawTheme, THEMES, Music, Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
 })();
