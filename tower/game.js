@@ -426,12 +426,12 @@ function sprite(kind) {
   return (SPR[kind] = c);
 }
 const skyCache = [];
-const BGIMG = new Set([10, 12, 13, 14, 33, 37, 38, 39]);   // 플로우로 만든 그림 배경이 있는 맵 번호 (bg/번호.jpg)
+const BGIMG = new Set(Array.from({ length: 40 }, (_, k) => k));   // 플로우로 만든 그림 배경이 있는 맵 번호 (bg/번호.jpg)
 const bgState = {};
 const BGSKIP = new Set(['volcano', 'castle', 'seoultower', 'palace', 'dokdo', 'hallasan', 'dolhareubang', 'tangerine', 'gift', 'pine', 'coral', 'fish', 'lolly', 'smoke', 'lavabub', 'snowman', 'building', 'palm']);
 function loadBg(i) {   // 필요할 때 한 번만 불러와서, 다 오면 기존 하늘 그림을 바꿔 끼움 (실패하면 그대로 코드 배경)
   if (bgState[i]) return; bgState[i] = 1;
-  const im = new Image(); im.onload = () => { skyCache[i] = mk(W, H, (g) => { g.drawImage(im, 0, 0, W, H); }); skyCache[i].img = 1; }; im.src = 'bg/' + i + '.jpg?v=1';
+  const im = new Image(); im.onload = () => { skyCache[i] = mk(W, H, (g) => { g.drawImage(im, 0, 0, W, H); }); skyCache[i].img = 1; }; im.src = 'bg/' + i + '.jpg?v=2';
 }
 function skyOf(i) {   // 하늘 + 해/달/무지개/오로라 (한 번만 그려 둠)
   if (BGIMG.has(i) && !bgState[i]) loadBg(i);
