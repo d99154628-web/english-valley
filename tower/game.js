@@ -428,6 +428,7 @@ function sprite(kind) {
 const skyCache = [];
 const BGIMG = new Set([10, 12, 13, 14, 33, 37, 38, 39]);   // 플로우로 만든 그림 배경이 있는 맵 번호 (bg/번호.jpg)
 const bgState = {};
+const BGSKIP = new Set(['volcano', 'castle', 'seoultower', 'palace', 'dokdo', 'hallasan', 'dolhareubang', 'tangerine', 'gift', 'pine', 'coral', 'fish', 'lolly', 'smoke', 'lavabub', 'snowman', 'building', 'palm']);
 function loadBg(i) {   // 필요할 때 한 번만 불러와서, 다 오면 기존 하늘 그림을 바꿔 끼움 (실패하면 그대로 코드 배경)
   if (bgState[i]) return; bgState[i] = 1;
   const im = new Image(); im.onload = () => { skyCache[i] = mk(W, H, (g) => { g.drawImage(im, 0, 0, W, H); }); skyCache[i].img = 1; }; im.src = 'bg/' + i + '.jpg?v=1';
@@ -497,6 +498,7 @@ function drawTheme(g, i, a, cam, t) {
   g.globalAlpha = a; g.drawImage(skyOf(i), 0, 0, W, H);
   const L = decoCache[i] || (decoCache[i] = decoList(i)), LOOP = 900;
   for (const d of L) {
+    if (BGSKIP.has(d.kind) && skyCache[i] && skyCache[i].img) continue;   // 그림 배경에 이미 있는 큰 장식은 겹치지 않게 뺌
     const sp = sprite(d.kind); if (!sp.lw || sp.lw < 4) continue;
     const y = (((d.y + cam * d.f) % LOOP) + LOOP) % LOOP - 180;
     const x = d.x + Math.sin(t * 0.3 + d.p) * 14 + d.dx * t * 0.2;
