@@ -844,6 +844,7 @@ class Scene {
           if (Math.abs(p.x - cn.x) < 26 && Math.abs((p.y - 22) - cn.y) < 34) { this.coinTaken.add(cn.id); this.runCoins++; Shop.add(1); sfx('coin'); this.burst(cn.x, cn.y, 5); }
         }
         if (t > this.invUntil && !this.rise && !this.plummet) for (const hz of Z.hz) {
+          if (hz.k === 'bird') continue;   // 새는 지나가기만 하고 부딪히지 않아요
           const hx = hzX(hz);
           if (Math.abs(p.x - hx) < 30 && Math.abs((p.y - 24) - hz.y) < 26) {
             this.invUntil = t + 1300; this.kb = { vx: (p.x < hx ? -1 : 1) * 420, t: 0.35 }; p.vy = -230; this.bs = -0.25; this.bv = 0; sfx('bonk'); this.shake = 0.2; this.burst(p.x, p.y - 20, 8);
