@@ -3,7 +3,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbw5doexlj-huQ_CXWStLB-amo5l-KzKqo_fQj7I7QKIV1M9WFpFeLQrxp1XnzvazZpZ4g/exec';
 const W = 960, H = 540, ZONE_H = 1000;   // 100m 올라갈 때마다 새로운 하늘 나라
 const PHYS = { g: 1300, speed: 250, jump: 640, djump: 580, spring: 1080 };
-const GAME = { quizEvery: 30, drain: 1.5, energyPer: 30, pointsPer: 30, giftRespawn: 20000 };
+const GAME = { drain: 1.1, energyPer: 30, pointsPer: 30, giftRespawn: 20000, gap: 15000, gateEvery: 100 };   // 에너지는 약 90초면 바닥, 문제 사이는 최소 15초
 const COIN = { gift: 3, answer: 3, gate: 5 };
 const ZFX = { 1: { dark: 1 }, 3: { wind: 55 }, 6: { slip: 1 }, 8: { low: 1 }, 9: { slip: 1 }, 10: { wind: 45 }, 11: { dark: 1 }, 12: { slip: 1 }, 13: { low: 1 }, 14: { low: 1 }, 15: { wind: 40 }, 19: { wind: 70 }, 21: { slip: 1 }, 23: { low: 1 }, 27: { wind: 30 }, 29: { wind: 25 } };   // 구간 이벤트(풍경별)
 const ZFX_MSG = { 1: '🌑 어두운 밤 — 내 주변만 보여요', 3: '🌬 노을 바람 — 옆으로 밀려요', 6: '🧊 미끄러운 오로라', 8: '🪐 우주 — 몸이 가벼워요!', 9: '🧊 미끄러운 얼음 나라', 10: '🌋 화산재 바람 — 옆으로 밀려요', 11: '🔥 어두운 용암 동굴 — 내 주변만 보여요', 12: '🎄 눈 쌓인 섬 — 미끄러워요', 13: '✨ 동화나라 마법 — 몸이 가벼워요!', 14: '🫧 바닷속 — 몸이 둥실둥실!', 15: '🏜 사막 모래바람', 19: '⛈ 폭풍 구름 — 바람이 세요!', 21: '⛄ 눈사람 마을 — 미끄러워요', 23: '🌙 달나라 — 몸이 가벼워요!', 27: '👻 으스스한 바람', 29: '🌸 벚꽃 바람' };
@@ -132,7 +132,7 @@ function buildZone(seed, z) {
     cx = clamp(cx, prevCx - 190, prevCx + 190);
     const main = { x: Math.round(cx - w / 2), y: Math.round(y), w, kind: 'main' };
     plats.push(main);
-    if (row % 6 === 0) gifts.push({ id: z * 100 + row, x: Math.round(cx), y: Math.round(y) - 18 });
+    if (row % 11 === 5) gifts.push({ id: z * 100 + row, x: Math.round(cx), y: Math.round(y) - 18 });
     if (row % 7 === 3 && w >= 96) springs.push({ x: Math.round(rnd2() < 0.5 ? main.x + 18 : main.x + w - 18), y: main.y });
     if (rnd() < 0.4) {
       const w2 = pick([96, 112]); let cx2 = r(w2 / 2 + 8, W - w2 / 2 - 8);
@@ -585,7 +585,9 @@ Net.getRound = () => Net.round;
 /* ---------- 퀴즈 ---------- */
 const Quiz = {
   deck: [], open: false, locked: true, cur: null, onDone: null,
-  next() { if (!this.deck.length) { this.deck = QS.map((_, i) => i); for (let i = this.deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]]; } } const i = this.deck.pop(); this.curIdx = i; return QS[i]; },
+  recent: [],
+  next() { if (!this.deck.length) { const seen = new Set(); this.deck = QS.map((_, i) => i).filter((i) => { const k = QS[i].q.trim().toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }); for (let i = this.deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]]; } } let i = this.deck.pop(), tries = 0; while (tries++ < 12 && this.deck.length && this.recent.some((r) => r.a === QS[i].a.trim().toLowerCase() || r.s === QS[i].q.trim().toLowerCase())) { this.deck.unshift(i); i = this.deck.pop(); }   // 같은 답·같은 문장이 가까이 나오지 않게
+    this.recent.push({ a: QS[i].a.trim().toLowerCase(), s: QS[i].q.trim().toLowerCase() }); if (this.recent.length > 8) this.recent.shift(); this.curIdx = i; return QS[i]; },
   show(tag, onDone) {
     const q = this.next(); this.cur = q; this.onDone = onDone; this.open = true; this.locked = false;
     $('qTag').textContent = tag; $('qQ').textContent = q.q; $('qKo').textContent = q.ko ? '💡 ' + q.ko : ''; $('qFeed').textContent = '';
@@ -706,7 +708,7 @@ class Scene {
     const s = Net.s;
     if (!first && s.round !== Net.round) {   // 새 판 시작
       Net.round = s.round;
-      this.best = 0; this.correct = 0; this.gifts.clear(); this.taken.clear(); this.jumps = 0; this.lives = 3; this.resetRun();
+      this.best = 0; this.correct = 0; this.gifts.clear(); this.taken.clear(); this.jumps = 0; this.lives = 3; this.energy = 100; this.resetRun();
       this.teleport(W / 2 + (Math.random() - 0.5) * 360, -2);
       if (Quiz.open) Quiz.hide(); this.quizBusy = false;
       this.lastQuizAt = performance.now() + Math.max(0, s.startAt - serverNow());
@@ -727,9 +729,11 @@ class Scene {
     for (let i = 0; i < steps; i++) this.physics(h, running);
     if (running) {
             const hh = heightOf(this.p.y); if (hh > this.best) { if (this.goldOn()) this.bo += hh - this.best; this.best = hh; }
-      if (!this.quizBusy && now - this.lastQuizAt > GAME.quizEvery * 1000) this.openQuiz('⏰ 퀴즈 타임!');
-      const gk = Math.floor(hh / 50);
-      if (gk > this.gateDone && !this.quizBusy && !this.rise && !this.plummet) { this.gateDone = gk; this.openQuiz(`🚪 ${gk * 50}m 문 퀴즈!`, true); }
+      const calm = !this.quizBusy && !this.rise && !this.plummet && now - this.lastQuizAt > GAME.gap;   // 문제가 연달아 나오지 않게
+      if (!this.quizBusy && !this.plummet && !this.rise) this.energy = Math.max(0, this.energy - GAME.drain * dt);
+      const gk = Math.floor(hh / GAME.gateEvery);
+      if (calm && this.energy <= 0) this.openQuiz('⚡ 에너지가 떨어졌어요! 퀴즈로 충전!', false, true);
+      else if (calm && gk > this.gateDone) { this.gateDone = gk; this.openQuiz(`🚪 ${gk * GAME.gateEvery}m 문 퀴즈!`, true); }
       const ev = s.ev; if (ev && ev.id !== this.evSeen) { this.evSeen = ev.id; if (sNow < ev.until) this.applyEvent(ev); }
     }
     if (now - this.trailAt > 300) { this.trailAt = now; this.sq++; this.trail.push([Math.round(this.p.x), Math.round(this.p.y), this.p.anim, this.p.flip ? 1 : 0, this.fxId()]); if (this.trail.length > 20) this.trail.shift(); }
@@ -814,7 +818,7 @@ class Scene {
         if (this.gifts.get(g.id) > t) continue;
         if (Math.abs(p.x - g.x) < 26 && Math.abs((p.y - 16) - g.y) < 30) {
           if (!running) { if (!this.hintAt || t - this.hintAt > 3000) { this.hintAt = t; this.toast('🎁 게임이 시작되면 열 수 있어요'); } continue; }
-          this.gifts.set(g.id, t + GAME.giftRespawn); sfx('gift'); Shop.add(COIN.gift); this.runCoins += COIN.gift; this.openQuiz('🎁 선물 상자 퀴즈!');
+          this.gifts.set(g.id, t + GAME.giftRespawn); sfx('gift'); Shop.add(COIN.gift); this.runCoins += COIN.gift; if (!this.quizBusy && !this.rise && !this.plummet && t - this.lastQuizAt > GAME.gap) this.openQuiz('🎁 선물 상자 퀴즈!'); else this.toast(`🪙 +${COIN.gift}`, 900);
         }
       }
     }
@@ -891,7 +895,7 @@ class Scene {
     }
   }
   burst(x, y, n) { for (let i = 0; i < n; i++) this.puffs.push({ x, y, vx: (Math.random() - 0.5) * 180, vy: -Math.random() * 120, l: 0.4 }); }
-  openQuiz(tag, gate) {
+  openQuiz(tag, gate, charge) {
     if (this.quizBusy || !QS.length) return;
     this.quizBusy = true; this.p.vx = 0;
     Quiz.show(tag, (ok) => {
@@ -901,8 +905,10 @@ class Scene {
         const gain = gate ? COIN.gate : COIN.answer; Shop.add(gain); this.runCoins += gain;
         if (this.goldOn()) this.bo += GAME.pointsPer;
         if (this.lives < 5) { this.lives++; this.toast('❤️ 생명 +1!', 1400); }
+        this.energy = charge ? 100 : Math.min(100, this.energy + GAME.energyPer); if (charge) this.toast('⚡ 에너지 가득!', 1400);
         if (this.combo >= 3) this.comboFx();
       } else {
+        if (charge) this.energy = 25;
         this.combo = 0; this.wq[qi] = (this.wq[qi] || 0) + 1; this.wrongIdx.add(qi);
         if (gate) { this.lives = Math.max(0, this.lives - 1); this.toast('🚪 문이 닫혔어요… ❤️ -1', 1800); }
       }
@@ -1063,15 +1069,15 @@ class Scene {
     }
     g.restore();
   }
-  drawGates(g, cam) {   // 50m마다 나오는 퀴즈 문
-    const k0 = Math.max(1, Math.ceil(-(cam + H + 60) / 500)), k1 = Math.floor(-(cam - 60) / 500);
+  drawGates(g, cam) {   // 100m마다 나오는 퀴즈 문
+    const k0 = Math.max(1, Math.ceil(-(cam + H + 60) / (GAME.gateEvery * 10))), k1 = Math.floor(-(cam - 60) / (GAME.gateEvery * 10));
     for (let k = k0; k <= k1; k++) {
-      const y = -k * 500, open = k <= this.gateDone;
+      const y = -k * GAME.gateEvery * 10, open = k <= this.gateDone;
       g.save(); g.globalAlpha = open ? 0.4 : 0.95;
       g.strokeStyle = open ? '#fff' : '#ffd23f'; g.lineWidth = 5; g.setLineDash([16, 10]); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]);
       g.fillStyle = open ? '#9aa6d8' : '#ff8fb0'; [60, W - 60].forEach((px) => { g.fillRect(px - 5, y - 54, 10, 54); g.beginPath(); g.arc(px, y - 58, 9, 0, 7); g.fill(); });
       g.restore();
-      this.label(g, (open ? '🚪 열린 문 ' : '🚪 퀴즈 문 ') + k * 50 + 'm', W / 2, y - 22, open ? '#cfd6ff' : '#fff3a8');
+      this.label(g, (open ? '🚪 열린 문 ' : '🚪 퀴즈 문 ') + k * GAME.gateEvery + 'm', W / 2, y - 22, open ? '#cfd6ff' : '#fff3a8');
     }
   }
   drawEmote(g, x, y, n) {
@@ -1146,6 +1152,7 @@ class Scene {
     const my = this.best + this.correct * GAME.pointsPer + this.bo;
     $('hudScore').textContent = `⭐ ${my}점${this.goldOn() ? ' ⚡x2' : ''}`;
     $('hudCoin').textContent = `🪙 ${Shop.coins} (+${this.runCoins})`;
+    $('eFill').style.width = Math.max(0, Math.min(100, this.energy)) + '%'; $('eFill').classList.toggle('low', this.energy < 25);
     $('hudCombo').textContent = `🔥 ${this.combo}콤보`; $('hudCombo').classList.toggle('hidden', this.combo < 2);
     $('hudItem').textContent = this.item === 'bolt' ? '⚡ 번개 · X키' : this.item === 'ice' ? '❄️ 얼음 · X키' : ''; $('hudItem').classList.toggle('hidden', !this.item);
     const ch = this.chaseInfo(my), showRank = s.status === 'play' && ch.n > 1;
@@ -1159,7 +1166,7 @@ class Scene {
     if (s.status === 'lobby') phase = '🛝 연습 시간 · 선생님이 곧 시작해요! 마음껏 뛰어 보세요';
     else if (s.status === 'ended') { rem = 0; phase = '🏁 게임 끝'; }
     else if (countdown) { rem = s.duration * 1000; phase = '준비!'; }
-    else { rem = s.endsAt - sNow; phase = '🎁 선물 상자·30초 퀴즈 정답이면 +30점 · 🎈 풍선 · 🥚 새 알을 찾아요!'; }
+    else { rem = s.endsAt - sNow; phase = '⚡ 에너지가 떨어지면 퀴즈! 정답이면 충전 · 🎁 선물 상자 · 🎈 풍선 · 🥚 새 알'; }
     { const ev = s.ev; if (running && ev && sNow < ev.until && ev.k !== 'balloon') phase = (ev.k === 'gold' ? '⚡ 골든타임! 점수 2배' : '🌙 달나라 중력! 둥실둥실') + ` · ${Math.ceil((ev.until - sNow) / 1000)}초`; }
     const timer = $('hudTimer');
     if (rem == null) timer.textContent = '--:--'; else { const sec = Math.max(0, Math.ceil(rem / 1000)); timer.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; }
