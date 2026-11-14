@@ -344,7 +344,7 @@ function sprite(kind) {
     case 'crystal': c = mk(120, 170, (g) => { [[60, 20, 36, 150, '#bfe6ff'], [26, 70, 28, 100, '#a8d8f5'], [96, 60, 26, 110, '#d6f0ff']].forEach(([x, y, w, h, col]) => { g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.lineTo(x + w / 2, y + h * 0.25); g.lineTo(x + w / 2, y + h); g.lineTo(x - w / 2, y + h); g.lineTo(x - w / 2, y + h * 0.25); g.closePath(); g.fill(); g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x - w / 2, y + h * 0.25); g.lineTo(x - w / 2 + 6, y + h); g.lineTo(x - 2, y + h * 0.3); g.closePath(); g.fill(); }); }); break;
     case 'flake': c = mk(40, 40, (g) => { g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 2.4; g.lineCap = 'round'; for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(20 + Math.cos(a) * 16, 20 + Math.sin(a) * 16); g.lineTo(20 - Math.cos(a) * 16, 20 - Math.sin(a) * 16); g.stroke(); } }); break;
     case 'bubble': c = mk(40, 40, (g) => { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2; g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(20, 20, 14, 0, 7); g.fill(); g.stroke(); g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.arc(15, 14, 3, 0, 7); g.fill(); }); break;
-    case 'bird': c = mk(60, 30, (g) => { g.strokeStyle = 'rgba(120,60,90,.7)'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(6, 18); g.quadraticCurveTo(18, 2, 30, 18); g.quadraticCurveTo(42, 2, 54, 18); g.stroke(); }); break;
+    case 'bird': c = mk(60, 36, (g) => { g.fillStyle = '#fff'; g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(6, 18); g.quadraticCurveTo(18, 2, 30, 20); g.quadraticCurveTo(42, 2, 54, 18); g.stroke(); g.fillStyle = '#ffc2d4'; g.beginPath(); g.ellipse(30, 22, 9, 8, 0, 0, 7); g.fill(); g.fillStyle = '#2a1c3a'; g.beginPath(); g.arc(33, 20, 1.6, 0, 7); g.fill(); g.fillStyle = '#ffb347'; g.beginPath(); g.moveTo(38, 22); g.lineTo(44, 24); g.lineTo(38, 26); g.fill(); }); break;
     case 'sprinkle': c = mk(30, 12, (g) => { g.fillStyle = ['#ff6fa8', '#6fc8ff', '#ffd23f'][Math.floor(rnd() * 3)]; g.beginPath(); g.roundRect ? g.roundRect(2, 3, 26, 6, 3) : g.rect(2, 3, 26, 6); g.fill(); }); break;
     case 'comet': c = mk(150, 40, (g) => { const gr = g.createLinearGradient(0, 20, 150, 20); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,.95)'); g.fillStyle = gr; g.beginPath(); g.moveTo(0, 20); g.lineTo(138, 12); g.lineTo(138, 28); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(140, 20, 8, 0, 7); g.fill(); }); break;
     case 'volcano': c = mk(300, 220, (g) => {
@@ -1110,13 +1110,22 @@ class Scene {
   drawHazard(g, hz) {
     const x = hzX(hz), y = hz.y + Math.sin(this.t * 2 + hz.x0) * 6, fl = Math.sin(this.t * 14 + hz.x0) * 0.6;
     g.save(); g.translate(x, y); g.scale(hz.d, 1); g.lineJoin = 'round';
-    if (hz.k === 'bird') {
-      g.fillStyle = '#ff7a8a'; g.strokeStyle = '#a8324a'; g.lineWidth = 2;
-      g.beginPath(); g.ellipse(0, 0, 17, 12, 0, 0, 7); g.fill(); g.stroke();
-      g.beginPath(); g.moveTo(-17, -2); g.lineTo(-27, -6); g.lineTo(-25, 4); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(15, -2); g.lineTo(26, 2); g.lineTo(15, 5); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = '#ff9aa8'; g.save(); g.translate(-2, -8); g.rotate(fl); g.beginPath(); g.ellipse(0, -9, 7, 13, 0, 0, 7); g.fill(); g.stroke(); g.restore();
-      g.fillStyle = '#2a1c3a'; g.beginPath(); g.arc(7, -3, 2.2, 0, 7); g.fill();
+    if (hz.k === 'bird') {   // 🐥 젤리 새: 통통 말랑 몸 + 반짝 눈 + 팔랑 날개
+      const pal = [['#ff9ab8', '#ffd0de', '#e0527f'], ['#8fd8ff', '#d4f1ff', '#3f9ad0'], ['#ffd85a', '#fff1b0', '#e0a61a'], ['#b8f08a', '#e4fcc8', '#5eb83a'], ['#d0a8ff', '#eadcff', '#8f5ad8']][Math.abs(Math.floor(hz.x0 * 7)) % 5];
+      const sq = 1 + Math.sin(this.t * 14 + hz.x0) * 0.07, bob = Math.sin(this.t * 7 + hz.x0) * 1.5;
+      g.translate(0, bob); g.scale(sq, 1 / sq);
+      g.save(); g.translate(-2, -3); g.rotate(-fl * 0.9 - 0.1); g.fillStyle = pal[2]; g.globalAlpha = 0.5;   // 뒤쪽 날개
+      g.beginPath(); g.ellipse(0, -10, 8, 15, 0, 0, 7); g.fill(); g.restore(); g.globalAlpha = 1;
+      g.fillStyle = pal[0]; g.beginPath(); g.moveTo(-17, 2); g.quadraticCurveTo(-30, -2, -29, -9); g.quadraticCurveTo(-22, -5, -15, -3); g.fill();   // 꼬리
+      const gr = g.createRadialGradient(-5, -9, 2, 0, 0, 22); gr.addColorStop(0, pal[1]); gr.addColorStop(0.55, pal[0]); gr.addColorStop(1, pal[2]);
+      g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, 20, 17, 0, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(-6, -10, 8, 3.5, -0.4, 0, 7); g.fill();   // 젤리 광택
+      g.fillStyle = '#ffb347'; g.beginPath(); g.moveTo(17, -1); g.quadraticCurveTo(28, 1, 17, 6); g.closePath(); g.fill();   // 부리
+      g.fillStyle = '#2a1c3a'; g.beginPath(); g.ellipse(8, -4, 3.6, 4.4, 0, 0, 7); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(9.3, -5.6, 1.4, 0, 7); g.arc(7, -2.6, 0.8, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,90,130,.35)'; g.beginPath(); g.ellipse(11, 5, 4, 2.6, 0, 0, 7); g.fill();   // 볼터치
+      g.save(); g.translate(-8, 0); g.rotate(fl - 0.35); g.fillStyle = pal[1]; g.strokeStyle = pal[2]; g.lineWidth = 1.5;   // 앞쪽 날개
+      g.beginPath(); g.ellipse(-3, -9, 6, 11, 0, 0, 7); g.fill(); g.stroke(); g.restore();
     } else if (hz.k === 'rock') {
       const gr = g.createLinearGradient(-60, 0, 0, 0); gr.addColorStop(0, 'rgba(255,200,120,0)'); gr.addColorStop(1, 'rgba(255,170,90,.8)');
       g.fillStyle = gr; g.beginPath(); g.moveTo(-70, 0); g.lineTo(0, -12); g.lineTo(0, 12); g.closePath(); g.fill();
