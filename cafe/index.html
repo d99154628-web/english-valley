@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>마법 레모네이드 카페</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#1d0f2e;font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#3b2412}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;background:#402a55 url(img/bg.jpg) center/cover no-repeat;overflow:hidden;border-radius:6px}
+.hidden{display:none!important}
+.screen{position:absolute;inset:0}
+button{font-family:inherit;cursor:pointer;border:none}
+input{font-family:inherit;user-select:text;-webkit-user-select:text}
+.panel{background:linear-gradient(#fffaf0,#fbeed3);border:4px solid #c9963f;border-radius:26px;box-shadow:0 10px 0 #7a4a17,0 22px 40px rgba(40,10,60,.5)}
+.btn{background:linear-gradient(#ffd45c,#f7a826);color:#5a2f05;font-size:28px;padding:14px 34px;border-radius:18px;box-shadow:0 6px 0 #b86a0c;transition:transform .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b86a0c}
+.btn.purple{background:linear-gradient(#b98cf0,#8552d6);color:#fff;box-shadow:0 6px 0 #53289a}
+.btn.red{background:linear-gradient(#ff8a8a,#e04b5a);color:#fff;box-shadow:0 6px 0 #9c2433}
+.btn.gray{background:linear-gradient(#f1e7d4,#d8c7a8);color:#5a4630;box-shadow:0 6px 0 #9c8763}
+.btn.small{font-size:20px;padding:9px 18px;border-radius:14px}
+.btn:disabled{filter:grayscale(.8);opacity:.6;cursor:default}
+kbd{display:inline-block;font-family:inherit;font-size:.7em;background:rgba(255,255,255,.75);color:#5a2f05;border-radius:7px;padding:1px 8px;margin-left:6px;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+
+/* 로그인 */
+#login .panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:620px;padding:34px 44px;text-align:center}
+#login h1{font-size:54px;color:#7b3fb8;text-shadow:0 3px 0 #fff;line-height:1.1}
+#login h1 small{display:block;font-size:24px;color:#c2701a;margin-bottom:6px}
+#login .bottles{height:110px;margin:6px 0 8px}
+#login .bottles img{height:110px;margin:0 6px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+#nameIn,#pwIn{width:100%;font-size:32px;text-align:center;padding:12px;border-radius:16px;border:4px solid #e0b35d;background:#fff;color:#3b2412;outline:none;margin:10px 0 16px}
+#nameIn:focus,#pwIn:focus{border-color:#8552d6}
+#toTeacher{position:absolute;right:18px;bottom:14px;font-size:17px;background:rgba(255,255,255,.85);color:#5a4630;padding:7px 14px;border-radius:12px}
+#pwBox{margin-top:14px;border-top:3px dashed #e0b35d;padding-top:12px}
+#loginMsg{color:#d0384b;font-size:20px;min-height:24px}
+
+/* 대기 */
+#lobby .panel{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:640px;padding:34px;text-align:center}
+#lobby h2{font-size:42px;color:#7b3fb8}
+#lobby p{font-size:24px;margin-top:10px;color:#7a5a36}
+#lobby .me{font-size:30px;color:#c2701a;margin-top:14px}
+.dots span{display:inline-block;width:16px;height:16px;border-radius:50%;background:#f7a826;margin:16px 6px 0;animation:bob 1s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* 게임 화면 */
+#hud{position:absolute;left:0;right:0;top:0;height:74px;display:flex;align-items:center;gap:14px;padding:10px 16px}
+.chip{background:rgba(255,250,238,.95);border:3px solid #c9963f;border-radius:999px;height:54px;display:flex;align-items:center;gap:8px;padding:0 18px 0 8px;font-size:28px;box-shadow:0 4px 0 rgba(90,50,10,.55)}
+.chip img{height:42px}
+.chip.t{padding:0 18px}
+#coinChip{min-width:170px}
+#coins{color:#b96a00}
+#timer.warn{color:#e0384b;animation:pulse .5s infinite alternate}
+@keyframes pulse{to{transform:scale(1.15)}}
+#spacer{flex:1}
+#muteBtn{width:54px;height:54px;border-radius:50%;font-size:26px;background:rgba(255,250,238,.95);border:3px solid #c9963f;box-shadow:0 4px 0 rgba(90,50,10,.55)}
+#rankBox{position:absolute;right:14px;top:86px;width:230px;background:rgba(255,250,238,.93);border:3px solid #c9963f;border-radius:18px;padding:10px 12px;font-size:19px;box-shadow:0 4px 0 rgba(90,50,10,.5)}
+#rankBox h3{font-size:19px;color:#7b3fb8;text-align:center;margin-bottom:4px}
+#rankBox .row{display:flex;justify-content:space-between;gap:6px;padding:2px 0}
+#rankBox .row.me{color:#d05a00}
+#rankBox .row span:first-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+#custs{position:absolute;left:150px;width:870px;bottom:204px;height:330px;display:flex;justify-content:space-around;align-items:flex-end}
+.slot{position:relative;width:260px;height:330px;display:flex;align-items:flex-end;justify-content:center}
+.cust{position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+.cust img.ch{height:215px;filter:drop-shadow(0 8px 6px rgba(0,0,0,.3));transition:transform .12s}
+.cust:hover img.ch{transform:translateY(-6px) scale(1.03)}
+.cust.leave{animation:leave .5s forwards;pointer-events:none}
+.cust.no .bubble{animation:shake .35s}
+.bubble{position:relative;background:#fff;border:3px solid #c9963f;border-radius:18px;padding:6px 14px 6px 6px;display:flex;align-items:center;gap:6px;font-size:19px;margin-bottom:8px;white-space:nowrap;box-shadow:0 4px 0 rgba(90,50,10,.35)}
+.bubble img{height:46px}
+.bubble:after{content:'';position:absolute;left:50%;bottom:-13px;margin-left:-9px;border:9px solid transparent;border-top-color:#c9963f;border-bottom:0}
+.bubble kbd{background:#f3e3ff;color:#6a2fb0}
+@keyframes pop{from{transform:translateY(60px) scale(.6);opacity:0}}
+@keyframes leave{40%{transform:translateY(-26px)}100%{transform:translate(120px,10px) scale(.7);opacity:0}}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.fly{position:absolute;font-size:38px;color:#ffe45c;-webkit-text-stroke:2px #8a4a00;text-shadow:0 3px 0 #8a4a00;pointer-events:none;animation:fly 1s forwards;z-index:5;white-space:nowrap}
+@keyframes fly{to{transform:translateY(-110px);opacity:0}}
+
+#bar{position:absolute;left:0;right:0;bottom:0;height:190px;display:flex;align-items:center;justify-content:center;gap:22px;padding:0 20px}
+#stock{display:flex;gap:10px;background:rgba(60,30,10,.55);border:3px solid rgba(255,220,150,.7);border-radius:22px;padding:10px 16px}
+.st{position:relative;width:92px;text-align:center;color:#fff;font-size:17px}
+.st img{height:100px;filter:drop-shadow(0 5px 4px rgba(0,0,0,.4));transition:transform .15s}
+.st.zero img{filter:grayscale(1) brightness(.6);opacity:.7}
+.st.bump img{transform:scale(1.25)}
+.st b{position:absolute;right:2px;top:0;min-width:36px;height:36px;line-height:32px;border-radius:18px;background:#fff;color:#5a2f05;border:3px solid #c9963f;font-size:22px;font-weight:normal}
+#quizBtn{font-size:36px;padding:26px 44px;border-radius:26px}
+#quizBtn.hint{animation:pulse .3s 4 alternate}
+#upBtn{font-size:21px;line-height:1.25;padding:14px 20px}
+#chestProg{position:absolute;left:18px;bottom:196px;background:rgba(255,250,238,.95);border:3px solid #c9963f;border-radius:16px;padding:6px 12px;font-size:19px;display:flex;align-items:center;gap:8px}
+#chestProg img{height:38px}
+.pip{display:inline-block;width:16px;height:16px;border-radius:50%;background:#e6d5b5;margin:0 2px;border:2px solid #c9963f}
+.pip.on{background:#ffb81f}
+
+/* 모달 */
+.modal{position:absolute;inset:0;background:rgba(30,10,50,.62);display:flex;align-items:center;justify-content:center;z-index:20}
+#qCard{width:880px;padding:30px 40px;text-align:center}
+#qText{font-size:38px;white-space:pre-line;line-height:1.3;color:#3b2412;min-height:100px;display:flex;align-items:center;justify-content:center}
+#qKo{font-size:22px;color:#8a6a3e;min-height:28px;margin:6px 0 10px}
+.ans{display:block;width:100%;margin:12px 0;font-size:30px;padding:16px 20px;border-radius:18px;background:#fff;border:4px solid #e0b35d;color:#3b2412;box-shadow:0 5px 0 #c9963f;text-align:left}
+.ans kbd{margin:0 14px 0 0;background:#ffe9b0;font-size:.8em}
+.ans.ok{background:#c9f5c0;border-color:#3ea44a;box-shadow:0 5px 0 #2c7a37}
+.ans.bad{background:#ffd0d0;border-color:#e04b5a;box-shadow:0 5px 0 #9c2433}
+#qMsg{font-size:28px;min-height:36px;margin-top:6px}
+#chCard{width:860px;padding:28px 36px;text-align:center}
+#chCard h2{font-size:40px;color:#7b3fb8}
+#chests{display:flex;justify-content:center;gap:30px;margin:18px 0 6px}
+.chest{background:none;position:relative;transition:transform .15s}
+.chest img{height:190px;filter:drop-shadow(0 8px 6px rgba(0,0,0,.3))}
+.chest:hover{transform:translateY(-8px) rotate(-2deg)}
+.chest.dim{opacity:.35;transform:scale(.85)}
+.chest.open{animation:pop .4s}
+.chest kbd{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);margin:0;font-size:22px}
+#chRes{min-height:120px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:34px;color:#3b2412}
+#chRes img{height:100px}
+#chRes.good{color:#1f8a3b}#chRes.bad{color:#d0384b}
+#toasts{position:absolute;left:50%;top:86px;transform:translateX(-50%);z-index:30;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.toast{background:#fff;border:4px solid #e04b5a;color:#b02234;font-size:26px;padding:10px 22px;border-radius:18px;box-shadow:0 6px 0 rgba(120,20,30,.5);animation:pop .3s}
+.toast.good{border-color:#3ea44a;color:#1f7a33;box-shadow:0 6px 0 rgba(20,90,30,.5)}
+
+/* 끝 */
+#end .panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:680px;padding:30px 44px;text-align:center}
+#end h2{font-size:48px;color:#7b3fb8}
+#endMe{font-size:30px;margin:10px 0;color:#c2701a}
+#endTop .row{display:flex;justify-content:space-between;font-size:28px;padding:6px 18px;border-radius:12px}
+#endTop .row:nth-child(1){background:#ffe9a8;font-size:34px}
+#endTop .row.me{color:#d05a00}
+
+/* 교사 */
+#teacher{background:rgba(250,244,255,.96);padding:18px 26px;color:#2f1c55}
+#teacher h1{font-size:38px;color:#7b3fb8;display:flex;align-items:center;gap:14px}
+#teacher h1 img{height:56px}
+#tTop{display:flex;align-items:center;gap:12px;margin:10px 0 12px;flex-wrap:wrap}
+#tTimer{font-size:60px;min-width:190px;text-align:center;background:#fff;border:4px solid #c9963f;border-radius:18px;padding:0 16px;color:#5a2f05}
+#tStatus{font-size:24px;min-width:150px}
+#tMain{display:flex;gap:18px;height:488px}
+#tBoard{flex:1;background:#fff;border:3px solid #d9c6f2;border-radius:18px;padding:12px 16px;overflow:hidden}
+#tRows{columns:2;column-gap:22px;font-size:25px}
+#tRows.many{font-size:20px}
+#tRows .row{display:flex;gap:10px;align-items:center;break-inside:avoid;padding:3px 6px;border-radius:8px}
+#tRows .row:nth-child(-n+3){background:#fff3c9}
+#tRows .rk{width:38px;text-align:right;color:#8552d6}
+#tRows .nm{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tRows .cn{color:#b96a00}
+#tRows .off{opacity:.4}
+#tSide{width:380px;display:flex;flex-direction:column;gap:12px}
+#tFeed{flex:1;background:#fff;border:3px solid #d9c6f2;border-radius:18px;padding:10px 14px;font-size:19px;overflow:hidden;display:flex;flex-direction:column-reverse}
+#tFeed div{padding:4px 0;border-bottom:1px dashed #e6daf7}
+#tInfo{background:#fff;border:3px solid #d9c6f2;border-radius:18px;padding:10px 14px;font-size:18px;word-break:break-all;user-select:text;-webkit-user-select:text}
+#tInfo b{color:#7b3fb8}
+select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:3px solid #c9963f;background:#fff}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 로그인 -->
+  <div id="login" class="screen">
+    <div class="panel">
+      <h1><small>Lesson 9~10 · How often do you…?</small>마법 레모네이드 카페</h1>
+      <div class="bottles"><img src="img/i0.webp" alt=""><img src="img/i1.webp" alt=""><img src="img/i2.webp" alt=""></div>
+      <input id="nameIn" maxlength="8" placeholder="이름을 쓰세요" autocomplete="off">
+      <button class="btn" id="joinBtn">카페 열기 <kbd>Enter</kbd></button>
+      <div id="loginMsg"></div>
+      <div id="pwBox" class="hidden">
+        <input id="pwIn" type="password" maxlength="8" placeholder="교사 비밀번호" autocomplete="off">
+        <button class="btn purple small" id="pwBtn">교사 화면 열기</button>
+      </div>
+    </div>
+    <button id="toTeacher">🔑 교사용 바로가기</button>
+  </div>
+
+  <!-- 대기 -->
+  <div id="lobby" class="screen hidden">
+    <div class="panel">
+      <h2 id="lobbyTitle">곧 카페 문을 열어요!</h2>
+      <p id="lobbyMsg">선생님이 시작을 누르면 장사가 시작돼요.</p>
+      <div class="me">🍋 <span id="lobbyName"></span> 사장님 · 지금 <span id="lobbyN">1</span>명 입장</div>
+      <div class="dots"><span></span><span></span><span></span></div>
+      <p style="font-size:20px;margin-top:18px">문제를 맞혀 레모네이드를 만들고 → 손님에게 팔아 코인을 벌고 → 손님 5명마다 보물상자!</p>
+    </div>
+  </div>
+
+  <!-- 게임 -->
+  <div id="play" class="screen hidden">
+    <div id="hud">
+      <div class="chip" id="coinChip"><img src="img/i5.webp" alt=""><span id="coins">0</span></div>
+      <div class="chip t">🏆 <span id="rank">-</span></div>
+      <div class="chip"><img src="img/i6.webp" alt=""><span id="shield">0</span></div>
+      <div class="chip t">⭐ Lv.<span id="lv">1</span></div>
+      <div id="spacer"></div>
+      <div class="chip t">⏰ <span id="timer">0:00</span></div>
+      <button id="muteBtn" title="음악 켜기/끄기">🎵</button>
+    </div>
+    <div id="rankBox"><h3>오늘의 장사왕</h3><div id="topRows"></div></div>
+    <div id="custs"><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+    <div id="chestProg"><img src="img/i3.webp" alt=""><span id="pips"></span></div>
+    <div id="bar">
+      <div id="stock">
+        <div class="st"><img src="img/i0.webp" alt=""><b>0</b>오렌지</div>
+        <div class="st"><img src="img/i1.webp" alt=""><b>0</b>라즈베리</div>
+        <div class="st"><img src="img/i2.webp" alt=""><b>0</b>블랙베리</div>
+      </div>
+      <button class="btn" id="quizBtn">📜 문제 풀고 만들기 <kbd>Space</kbd></button>
+      <button class="btn purple" id="upBtn"></button>
+    </div>
+  </div>
+
+  <!-- 끝 -->
+  <div id="end" class="screen hidden">
+    <div class="panel">
+      <h2>🌙 오늘 영업 끝!</h2>
+      <div id="endMe"></div>
+      <div id="endTop"></div>
+      <p style="font-size:20px;margin-top:14px;color:#7a5a36">선생님이 다시 시작하면 새 장사가 열려요.</p>
+    </div>
+  </div>
+
+  <!-- 문제 -->
+  <div id="qModal" class="modal hidden">
+    <div class="panel" id="qCard">
+      <div id="qText"></div>
+      <div id="qKo"></div>
+      <div id="qAns"></div>
+      <div id="qMsg"></div>
+    </div>
+  </div>
+
+  <!-- 상자 -->
+  <div id="chModal" class="modal hidden">
+    <div class="panel" id="chCard">
+      <h2 id="chTitle">🎁 보물상자를 하나 고르세요!</h2>
+      <div id="chests"></div>
+      <div id="chRes"></div>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <!-- 교사 -->
+  <div id="teacher" class="screen hidden">
+    <h1><img src="img/i0.webp" alt="">마법 레모네이드 카페 · 교사 화면
+      <span style="flex:1"></span>
+      <button class="btn gray small" id="toStudent">🧒 학생용 바로가기</button>
+    </h1>
+    <div id="tTop">
+      <div id="tTimer">--:--</div>
+      <div id="tStatus">대기 중</div>
+      <select id="tMins"><option>5</option><option>8</option><option selected>10</option><option>12</option><option>15</option><option>20</option></select><span style="font-size:22px">분</span>
+      <button class="btn small" id="tStart">▶ 시작</button>
+      <button class="btn gray small" id="tPlus">+1분</button>
+      <button class="btn gray small" id="tMinus">−1분</button>
+      <button class="btn red small" id="tEnd">■ 끝</button>
+      <button class="btn purple small" id="tSteal">약탈 켜짐</button>
+      <button class="btn gray small" id="tReset">초기화</button>
+    </div>
+    <div id="tMain">
+      <div id="tBoard"><div id="tRows"></div></div>
+      <div id="tSide">
+        <div id="tFeed"></div>
+        <div id="tInfo"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="questions.js?v=1"></script>
+<script>
+'use strict';
+const API = 'https://script.google.com/macros/s/AKfycbxZOwJVqZV1_gdlTlS82zauOJ10FYHDOQvTBFjtBZ73RdLOt-R3mqmvc_bq9tXop2pUKQ/exec';
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random() * n);
+const LV_PRICE = [0, 10, 15, 20, 30, 40], LV_COST = [0, 100, 250, 500, 900];
+const DRINK = ['Orange', 'Raspberry', 'Blackberry'];
+const CHEST_EVERY = 5, MAX_STOCK = 9;
+
+/* ---------- 화면 맞추기 ---------- */
+function fit() {
+  const s = Math.min(innerWidth / 1280, innerHeight / 720), st = $('stage');
+  st.style.transform = 'scale(' + s + ')';
+  st.style.marginLeft = (-640 * s) + 'px'; st.style.marginTop = (-360 * s) + 'px';
+}
+addEventListener('resize', fit); fit();
+
+/* ---------- 소리 (Web Audio) ---------- */
+let AC = null, master = null, musicGain = null, musicOn = true, musicTimer = null, nextBar = 0, barNo = 0;
+function audio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return AC; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.55;
+    const comp = AC.createDynamicsCompressor();
+    const dl = AC.createDelay(); dl.delayTime.value = 0.23;
+    const fb = AC.createGain(); fb.gain.value = 0.22;
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    master.connect(comp); master.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(comp);
+    comp.connect(AC.destination);
+    musicGain = AC.createGain(); musicGain.gain.value = 0.16; musicGain.connect(master);
+  } catch (e) { AC = null; }
+  return AC;
+}
+function bell(f, t, dur, vol, dest) {           // 부드러운 오르골 소리
+  if (!AC) return;
+  [[1, 1], [2, .28], [3, .08], [4.2, .04]].forEach(([m, a]) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = 'sine'; o.frequency.value = f * m;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur / (m > 1 ? 1.8 : 1));
+    o.connect(g); g.connect(dest || master); o.start(t); o.stop(t + dur + 0.05);
+  });
+}
+function soft(f, t, dur, vol, type, f2, dest) {  // 둥근 소리(베이스·효과)
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain(), lp = AC.createBiquadFilter();
+  o.type = type || 'triangle'; o.frequency.setValueAtTime(f, t);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  lp.type = 'lowpass'; lp.frequency.value = 1400;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lp); lp.connect(g); g.connect(dest || master); o.start(t); o.stop(t + dur + 0.05);
+}
+const N = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, D6: 1174.7, E6: 1318.5, G6: 1568, C3: 130.81, F3: 174.61, G3: 196, A3: 220, E3: 164.81, D3: 146.83 };
+const SFX = {
+  click() { bell(N.E5, AC.currentTime, .12, .12); },
+  correct() { const t = AC.currentTime; [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => bell(f, t + i * .075, .5, .2)); },
+  wrong() { const t = AC.currentTime; soft(330, t, .22, .16, 'triangle', 262); soft(247, t + .18, .32, .16, 'triangle', 196); },
+  coin() { const t = AC.currentTime; bell(N.E6, t, .18, .16); bell(N.G6, t + .07, .4, .16); },
+  nope() { soft(180, AC.currentTime, .18, .14, 'sine', 150); },
+  chest() { const t = AC.currentTime; [N.G4, N.C5, N.E5, N.G5, N.C6, N.E6].forEach((f, i) => bell(f, t + i * .06, .6, .13)); },
+  big() { const t = AC.currentTime; [[N.C5, 0], [N.E5, .1], [N.G5, .2], [N.C6, .32], [N.E6, .44], [N.G6, .56], [N.C6, .7], [N.E6, .7], [N.G6, .7]].forEach(([f, d]) => bell(f, t + d, .9, .16)); },
+  steal() { const t = AC.currentTime; [N.A5, N.G5, N.E5, N.D5, N.C5].forEach((f, i) => soft(f, t + i * .07, .14, .14, 'square')); bell(N.C6, t + .42, .5, .14); },
+  lose() { const t = AC.currentTime; soft(392, t, .3, .16, 'triangle', 311); soft(311, t + .26, .3, .16, 'triangle', 247); soft(247, t + .52, .55, .16, 'triangle', 165); },
+  shield() { const t = AC.currentTime; [N.G4, N.D5, N.G5, N.B5].forEach(f => bell(f, t, .9, .12)); bell(N.D6, t + .12, .8, .1); },
+  start() { const t = AC.currentTime; [[N.G4, 0], [N.C5, .14], [N.E5, .28], [N.G5, .42], [N.C6, .62]].forEach(([f, d]) => bell(f, t + d, .8, .2)); },
+  end() { const t = AC.currentTime; [[N.C6, 0], [N.G5, .18], [N.E5, .36], [N.C5, .54], [N.G4, .8], [N.C5, 1.05]].forEach(([f, d]) => bell(f, t + d, 1, .2)); },
+  tick() { soft(880, AC.currentTime, .06, .08, 'sine'); },
+  up() { const t = AC.currentTime; [N.C5, N.D5, N.E5, N.G5, N.A5, N.C6].forEach((f, i) => bell(f, t + i * .05, .5, .14)); }
+};
+function sfx(n) { if (!audio()) return; try { SFX[n](); } catch (e) {} }
+/* 배경 음악: 느긋한 오르골 왈츠 (8마디 반복) */
+const BARS = [
+  { b: 'C3', ch: ['E4', 'G4'], m: ['E5', 'G5', 'C6'] },
+  { b: 'A3', ch: ['C4', 'E4'], m: ['A5', 'G5', 'E5'] },
+  { b: 'F3', ch: ['A4', 'C5'], m: ['F5', 'A5', 'G5'] },
+  { b: 'G3', ch: ['B4', 'D5'], m: ['D5', 'E5', 'G5'] },
+  { b: 'C3', ch: ['E4', 'G4'], m: ['C6', 'G5', 'E5'] },
+  { b: 'E3', ch: ['G4', 'B4'], m: ['B5', 'G5', 'E5'] },
+  { b: 'F3', ch: ['A4', 'C5'], m: ['A5', 'C6', 'A5'] },
+  { b: 'G3', ch: ['B4', 'D5'], m: ['G5', 'D5', 'G5'] }
+];
+function musicLoop() {
+  if (!AC || !musicOn) return;
+  const beat = 0.46;
+  while (nextBar < AC.currentTime + 1.2) {
+    const B = BARS[barNo % 8], t = Math.max(nextBar, AC.currentTime + .05);
+    soft(N[B.b], t, beat * 2.6, .5, 'sine', 0, musicGain);
+    B.ch.forEach(n => { bell(N[n], t + beat, beat * .9, .22, musicGain); bell(N[n], t + beat * 2, beat * .9, .2, musicGain); });
+    B.m.forEach((n, i) => bell(N[n], t + i * beat, beat * 1.8, .5, musicGain));
+    if (barNo % 2 === 1) bell(N[B.m[1]] * 2, t + beat * 2.5, beat, .14, musicGain);
+    nextBar = t + beat * 3; barNo++;
+  }
+}
+function startMusic() {
+  if (!audio() || musicTimer) return;
+  nextBar = AC.currentTime + .1;
+  musicTimer = setInterval(musicLoop, 300); musicLoop();
+}
+function setMusic(on) {
+  musicOn = on; $('muteBtn').textContent = on ? '🎵' : '🔇';
+  if (AC) musicGain.gain.setTargetAtTime(on ? 0.16 : 0, AC.currentTime, .1);
+  if (on && AC) nextBar = Math.max(nextBar, AC.currentTime + .1);
+  try { localStorage.setItem('lemcafe_music', on ? '1' : '0'); } catch (e) {}
+}
+
+/* ---------- 상태 ---------- */
+let S = { id: '', name: '', coins: 0, served: 0, sh: 0, lv: 1, stock: [2, 2, 2], streak: 0, round: 0, since: 0 };
+let G = { status: 'wait', round: 0, endAt: 0, steal: true }, off = 0, topList = [], myRank = 0, nPlayers = 1;
+let modal = null, scr = 'login', deck = [], slots = [null, null, null], endedLocal = 0;
+function save() { try { localStorage.setItem('lemcafe', JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try {
+    const o = JSON.parse(localStorage.getItem('lemcafe') || 'null');
+    if (o && o.id) S = Object.assign(S, o);
+    if (localStorage.getItem('lemcafe_music') === '0') musicOn = false;
+  } catch (e) {}
+  if (!S.id) S.id = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function show(name) {
+  scr = name;
+  ['login', 'lobby', 'play', 'end', 'teacher'].forEach(k => $(k).classList.toggle('hidden', k !== name));
+  if (name !== 'play') closeModals();
+}
+function closeModals() { modal = null; $('qModal').classList.add('hidden'); $('chModal').classList.add('hidden'); }
+
+async function api(body) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 9000);
+  try { const r = await fetch(API, { method: 'POST', body: JSON.stringify(body), signal: ctl.signal }); return await r.json(); }
+  catch (e) { return null; } finally { clearTimeout(tm); }
+}
+
+/* ---------- 서버와 맞추기 ---------- */
+let syncing = false;
+async function sync() {
+  if (!S.name || syncing || scr === 'teacher' || scr === 'login') return;
+  syncing = true;
+  const r = await api({ act: 'sync', id: S.id, name: S.name, coins: S.coins, served: S.served, sh: S.sh, lv: S.lv, round: S.round });
+  syncing = false;
+  if (!r || !r.game) return;
+  off = r.now - Date.now(); G = r.game; topList = r.top || []; myRank = r.rank || 0; nPlayers = r.n || 1;
+  (r.deltas || []).forEach(d => {
+    if (d.k === 'steal') { S.coins = Math.max(0, S.coins - d.amt); toast('🐭 ' + d.from + ' 이(가) 코인 ' + d.amt + '개를 가져갔어요!'); sfx('lose'); }
+    if (d.k === 'swap') { S.coins = d.set; toast('🔄 ' + d.from + ' 와(과) 코인이 바뀌었어요!'); sfx('lose'); }
+    if (d.k === 'block') { S.sh = Math.max(0, S.sh - 1); toast('🛡 방패가 ' + d.from + ' 의 약탈을 막았어요!', true); sfx('shield'); }
+  });
+  route(); render(); save();
+}
+function loopSync() { sync().then(() => setTimeout(loopSync, 3300 + rnd(1400))); }
+
+function route() {
+  if (scr === 'teacher' || scr === 'login') return;
+  if (G.status === 'run') {
+    if (S.round !== G.round) newRound();
+    if (scr !== 'play') { show('play'); sfx('start'); for (let i = 0; i < 3; i++) if (!slots[i]) spawn(i, 300 + i * 300); }
+  } else if (G.status === 'end' && S.round === G.round && S.round) {
+    if (scr !== 'end') { show('end'); sfx('end'); }
+    renderEnd();
+  } else {
+    if (scr !== 'lobby') show('lobby');
+    $('lobbyTitle').textContent = G.status === 'end' ? '지난 장사가 끝났어요' : '곧 카페 문을 열어요!';
+    $('lobbyMsg').textContent = '선생님이 시작을 누르면 장사가 시작돼요.';
+    $('lobbyName').textContent = S.name; $('lobbyN').textContent = nPlayers;
+  }
+}
+function newRound() {
+  S.coins = 0; S.served = 0; S.sh = 0; S.lv = 1; S.stock = [2, 2, 2]; S.streak = 0; S.since = 0; S.round = G.round;
+  deck = []; endedLocal = 0;
+  for (let i = 0; i < 3; i++) { clearSlot(i); spawn(i, 300 + i * 350); }
+  save();
+}
+
+/* ---------- 그리기 ---------- */
+function fmt(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function render() {
+  $('coins').textContent = S.coins.toLocaleString();
+  $('rank').textContent = myRank ? myRank + '등 / ' + nPlayers + '명' : '-';
+  $('shield').textContent = S.sh; $('lv').textContent = S.lv;
+  document.querySelectorAll('#stock .st').forEach((el, i) => { el.querySelector('b').textContent = S.stock[i]; el.classList.toggle('zero', S.stock[i] <= 0); });
+  const up = $('upBtn');
+  if (S.lv >= 5) { up.innerHTML = '⭐ 최고 레벨!<br>한 잔 ' + LV_PRICE[5] + '코인'; up.disabled = true; }
+  else { up.innerHTML = '⬆ 메뉴 업그레이드 <kbd>U</kbd><br>' + LV_COST[S.lv] + '코인 → 한 잔 ' + LV_PRICE[S.lv + 1]; up.disabled = S.coins < LV_COST[S.lv]; }
+  let p = ''; for (let i = 0; i < CHEST_EVERY; i++) p += '<span class="pip' + (i < S.since ? ' on' : '') + '"></span>'; $('pips').innerHTML = p;
+  const box = $('topRows'); box.textContent = '';
+  topList.forEach((t, i) => {
+    const row = document.createElement('div'); row.className = 'row' + (t.n === S.name && i + 1 === myRank ? ' me' : '');
+    const a = document.createElement('span'); a.textContent = ['🥇', '🥈', '🥉', '4', '5'][i] + ' ' + t.n;
+    const b = document.createElement('span'); b.textContent = t.c.toLocaleString();
+    row.append(a, b); box.appendChild(row);
+  });
+}
+function renderEnd() {
+  $('endMe').textContent = S.name + ' 사장님: 코인 ' + S.coins.toLocaleString() + '개' + (myRank ? ' · ' + myRank + '등' : '') + ' · 손님 ' + S.served + '명';
+  const box = $('endTop'); box.textContent = '';
+  topList.forEach((t, i) => {
+    const row = document.createElement('div'); row.className = 'row' + (t.n === S.name && i + 1 === myRank ? ' me' : '');
+    const a = document.createElement('span'); a.textContent = ['🥇', '🥈', '🥉', '4등', '5등'][i] + ' ' + t.n;
+    const b = document.createElement('span'); b.textContent = t.c.toLocaleString();
+    row.append(a, b); box.appendChild(row);
+  });
+}
+function toast(msg, good) {
+  const d = document.createElement('div'); d.className = 'toast' + (good ? ' good' : ''); d.textContent = msg;
+  $('toasts').appendChild(d); setTimeout(() => d.remove(), 3200);
+}
+let lastTick = -1;
+setInterval(() => {
+  if (scr !== 'play') return;
+  const left = G.endAt - (Date.now() + off);
+  $('timer').textContent = fmt(left);
+  const warn = left < 30000; $('timer').classList.toggle('warn', warn);
+  const sec = Math.ceil(left / 1000);
+  if (warn && sec !== lastTick && sec > 0 && sec <= 10) { lastTick = sec; sfx('tick'); }
+  if (left <= 0 && !endedLocal) { endedLocal = 1; G.status = 'end'; closeModals(); show('end'); sfx('end'); renderEnd(); sync(); }
+}, 250);
+
+/* ---------- 손님 ---------- */
+function clearSlot(i) { const el = document.querySelectorAll('#custs .slot')[i]; el.textContent = ''; slots[i] = null; }
+function spawn(i, delay) {
+  setTimeout(() => {
+    if (slots[i] || G.status !== 'run') return;
+    const used = slots.filter(Boolean).map(s => s.ch);
+    let ch; do { ch = rnd(8); } while (used.includes(ch));
+    const want = rnd(3);
+    const el = document.createElement('div'); el.className = 'cust';
+    el.innerHTML = '<div class="bubble"><img src="img/i' + want + '.webp" alt="">' + DRINK[want] + ', please!<kbd>' + 'ASD'[i] + '</kbd></div><img class="ch" src="img/c' + ch + '.webp" alt="">';
+    el.onclick = () => serve(i);
+    document.querySelectorAll('#custs .slot')[i].appendChild(el);
+    slots[i] = { ch, want, el };
+  }, delay);
+}
+function serve(i) {
+  if (modal || scr !== 'play' || G.status !== 'run') return;
+  const c = slots[i]; if (!c) return;
+  if (S.stock[c.want] <= 0) {
+    c.el.classList.remove('no'); void c.el.offsetWidth; c.el.classList.add('no');
+    const q = $('quizBtn'); q.classList.remove('hint'); void q.offsetWidth; q.classList.add('hint');
+    sfx('nope'); return;
+  }
+  const price = LV_PRICE[S.lv];
+  S.stock[c.want]--; S.coins += price; S.served++; S.since++;
+  sfx('coin');
+  const f = document.createElement('div'); f.className = 'fly'; f.textContent = '+' + price;
+  f.style.left = '90px'; f.style.top = '40px'; c.el.parentNode.appendChild(f); setTimeout(() => f.remove(), 1000);
+  c.el.classList.add('leave'); const el = c.el; setTimeout(() => el.remove(), 520);
+  slots[i] = null; spawn(i, 900 + rnd(500));
+  render(); save();
+  if (S.since >= CHEST_EVERY) { S.since = 0; setTimeout(openChest, 450); }
+}
+
+/* ---------- 문제 ---------- */
+let curQ = null, qLock = false;
+function nextQ() {
+  const Q = window.QUESTIONS || [];
+  if (!deck.length) { deck = Q.map((_, i) => i); for (let i = deck.length - 1; i > 0; i--) { const j = rnd(i + 1); [deck[i], deck[j]] = [deck[j], deck[i]]; } }
+  return Q[deck.pop()];
+}
+function openQ() {
+  if (modal || scr !== 'play' || G.status !== 'run') return;
+  curQ = nextQ(); if (!curQ) return;
+  modal = 'q'; qLock = false; sfx('click');
+  $('qText').textContent = curQ.q; $('qKo').textContent = ''; $('qMsg').textContent = '';
+  const opts = [curQ.a].concat(curQ.w).map(t => ({ t, ok: t === curQ.a }));
+  for (let i = opts.length - 1; i > 0; i--) { const j = rnd(i + 1); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+  const box = $('qAns'); box.textContent = '';
+  opts.forEach((o, i) => {
+    const b = document.createElement('button'); b.className = 'ans'; b.dataset.ok = o.ok ? '1' : '';
+    const k = document.createElement('kbd'); k.textContent = i + 1; b.append(k, o.t);
+    b.onclick = () => answer(b); box.appendChild(b);
+  });
+  $('qModal').classList.remove('hidden');
+}
+function answer(b) {
+  if (qLock || modal !== 'q') return; qLock = true;
+  const ok = b.dataset.ok === '1';
+  document.querySelectorAll('#qAns .ans').forEach(x => { if (x.dataset.ok === '1') x.classList.add('ok'); });
+  if (curQ.ko) $('qKo').textContent = curQ.ko;
+  if (ok) {
+    S.streak++;
+    const add = S.streak >= 3 ? 2 : 1;
+    S.stock = S.stock.map(v => Math.min(MAX_STOCK, v + add));
+    $('qMsg').textContent = add === 2 ? '🔥 ' + S.streak + '연속 정답! 레모네이드 2병씩!' : '✨ 정답! 레모네이드 1병씩 완성!';
+    $('qMsg').style.color = '#1f8a3b'; sfx('correct');
+    document.querySelectorAll('#stock .st').forEach(el => { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 500); });
+  } else {
+    b.classList.add('bad'); S.streak = 0;
+    $('qMsg').textContent = '아쉬워요! 초록색이 정답이에요.'; $('qMsg').style.color = '#d0384b'; sfx('wrong');
+  }
+  render(); save();
+  setTimeout(() => { if (modal === 'q') closeModals(); }, ok ? 950 : 2300);
+}
+
+/* ---------- 업그레이드 ---------- */
+function upgrade() {
+  if (modal || scr !== 'play' || S.lv >= 5 || S.coins < LV_COST[S.lv]) return;
+  S.coins -= LV_COST[S.lv]; S.lv++; sfx('up'); toast('⭐ 메뉴 Lv.' + S.lv + '! 이제 한 잔에 ' + LV_PRICE[S.lv] + '코인', true);
+  render(); save();
+}
+
+/* ---------- 보물상자 ---------- */
+let chLock = false;
+function openChest() {
+  if (scr !== 'play' || G.status !== 'run') return;
+  if (modal === 'q') { setTimeout(openChest, 600); return; }
+  modal = 'chest'; chLock = false; sfx('chest');
+  $('chTitle').textContent = '🎁 보물상자를 하나 고르세요!';
+  $('chRes').textContent = ''; $('chRes').className = '';
+  const box = $('chests'); box.textContent = '';
+  for (let i = 0; i < 3; i++) {
+    const b = document.createElement('button'); b.className = 'chest';
+    b.innerHTML = '<img src="img/i3.webp" alt=""><kbd>' + (i + 1) + '</kbd>';
+    b.onclick = () => pickChest(i); box.appendChild(b);
+  }
+  $('chModal').classList.remove('hidden');
+}
+function roll() {
+  const t = G.steal
+    ? [['gain', 28], ['x2', 14], ['x3', 4], ['steal', 18], ['swap', 5], ['m25', 12], ['m50', 5], ['shield', 14]]
+    : [['gain', 46], ['x2', 16], ['x3', 5], ['m25', 13], ['m50', 5], ['shield', 15]];
+  let r = Math.random() * t.reduce((a, x) => a + x[1], 0);
+  for (const [k, w] of t) { r -= w; if (r <= 0) return k; }
+  return 'gain';
+}
+async function pickChest(i) {
+  if (chLock || modal !== 'chest') return; chLock = true;
+  const btns = document.querySelectorAll('#chests .chest');
+  btns.forEach((b, j) => { if (j !== i) b.classList.add('dim'); });
+  let kind = roll(), res = $('chRes'), good = true, msg = '', icon = 'i5', snd = 'coin';
+  const bonus = LV_PRICE[S.lv] * 5;
+  if ((kind === 'x2' || kind === 'x3') && S.coins < bonus) kind = 'gain';
+  if (kind === 'steal' || kind === 'swap') {
+    $('chTitle').textContent = '두근두근…';
+    const r = await api({ act: 'chest', id: S.id, name: S.name, coins: S.coins, kind });
+    if (modal !== 'chest') return;
+    if (!r || r.none || r.err) kind = 'gain';
+    else if (r.blocked) { msg = '🛡 ' + r.name + ' 의 방패에 막혔어요!'; icon = 'i6'; good = false; snd = 'nope'; }
+    else if (kind === 'steal') { S.coins += r.amt; msg = '😎 ' + r.name + ' 의 코인 ' + r.amt + '개를 가져왔어요!'; icon = 'i7'; snd = 'steal'; }
+    else { S.coins = r.set; msg = '🔄 1등 ' + r.name + ' 와(과) 코인을 바꿨어요!'; icon = 'i4'; snd = 'big'; }
+  }
+  if (kind === 'gain') { S.coins += bonus; msg = '코인 +' + bonus + '!'; icon = 'i5'; snd = 'coin'; }
+  if (kind === 'x2') { S.coins *= 2; msg = '와! 코인 2배!'; icon = 'i4'; snd = 'big'; }
+  if (kind === 'x3') { S.coins *= 3; msg = '대박! 코인 3배!'; icon = 'i4'; snd = 'big'; }
+  if (kind === 'shield') { S.sh = Math.min(3, S.sh + 1); msg = '방패 획득! 나쁜 일을 한 번 막아요'; icon = 'i6'; snd = 'shield'; }
+  if (kind === 'm25' || kind === 'm50') {
+    icon = 'i7';
+    if (S.sh > 0) { S.sh--; msg = '🛡 방패가 도둑 쥐를 막았어요!'; snd = 'shield'; }
+    else { const lost = Math.floor(S.coins * (kind === 'm50' ? .5 : .25)); S.coins -= lost; msg = '도둑 쥐가 코인 ' + lost + '개를 물고 갔어요…'; good = false; snd = 'lose'; }
+  }
+  btns[i].classList.add('open'); btns[i].querySelector('img').src = 'img/i4.webp';
+  $('chTitle').textContent = good ? '🎉 상자를 열었어요!' : '앗!';
+  res.className = good ? 'good' : 'bad'; res.innerHTML = '<img src="img/' + icon + '.webp" alt=""><span></span>';
+  res.querySelector('span').textContent = msg;
+  sfx(snd); render(); save(); sync();
+  setTimeout(() => { if (modal === 'chest') closeModals(); }, 2300);
+}
+
+/* ---------- 키보드 ---------- */
+addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+  if (scr !== 'play') return;
+  const c = e.code || '', key = e.key;
+  const num = c === 'Digit1' || c === 'Numpad1' || key === '1' ? 1 : c === 'Digit2' || c === 'Numpad2' || key === '2' ? 2 : c === 'Digit3' || c === 'Numpad3' || key === '3' ? 3 : 0;
+  if (modal === 'q') { if (num) { const b = document.querySelectorAll('#qAns .ans')[num - 1]; if (b) answer(b); } e.preventDefault(); return; }
+  if (modal === 'chest') { if (num) pickChest(num - 1); e.preventDefault(); return; }
+  if (c === 'Space' || c === 'Enter' || key === ' ' || key === 'Enter') { e.preventDefault(); openQ(); }
+  else if (c === 'KeyA') serve(0);
+  else if (c === 'KeyS') serve(1);
+  else if (c === 'KeyD') serve(2);
+  else if (c === 'KeyU') upgrade();
+});
+$('quizBtn').onclick = openQ; $('upBtn').onclick = upgrade;
+$('muteBtn').onclick = () => { audio(); setMusic(!musicOn); if (musicOn) startMusic(); };
+
+/* ---------- 로그인 ---------- */
+function join() {
+  const n = $('nameIn').value.trim().slice(0, 8);
+  if (!n) { $('loginMsg').textContent = '이름을 써 주세요!'; return; }
+  if (n !== S.name) { S.name = n; S.round = 0; }
+  audio(); sfx('click'); setMusic(musicOn); if (musicOn) startMusic();
+  save(); show('lobby'); $('lobbyName').textContent = S.name; $('lobbyN').textContent = '…';
+  sync();
+}
+$('joinBtn').onclick = join;
+$('nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+$('toTeacher').onclick = () => { $('pwBox').classList.toggle('hidden'); $('pwIn').focus(); };
+$('pwBtn').onclick = teacherLogin;
+$('pwIn').addEventListener('keydown', e => { if (e.key === 'Enter') teacherLogin(); });
+
+/* ---------- 교사 화면 ---------- */
+let PWD = '', tTimer = null, tG = null, tOff = 0;
+async function teacherLogin() {
+  const pw = $('pwIn').value.trim(); if (!pw) return;
+  $('loginMsg').textContent = '확인 중…';
+  const r = await api({ act: 'teacher', pw, cmd: 'state' });
+  if (!r) { $('loginMsg').textContent = '서버에 연결하지 못했어요. 다시 눌러 주세요.'; return; }
+  if (r.err) { $('loginMsg').textContent = '비밀번호가 달라요.'; return; }
+  PWD = pw; $('loginMsg').textContent = ''; show('teacher'); tRender(r);
+  $('tInfo').innerHTML = '<b>학생 접속 주소</b><br>' + location.origin + location.pathname;
+  clearInterval(tTimer); tTimer = setInterval(() => tCmd('state'), 2500);
+}
+async function tCmd(cmd, v) { const r = await api({ act: 'teacher', pw: PWD, cmd, v }); if (r && !r.err) tRender(r); }
+function tRender(r) {
+  tG = r.game; tOff = r.now - Date.now();
+  $('tStatus').textContent = (tG.status === 'run' ? '🟢 장사 중' : tG.status === 'end' ? '🔴 영업 끝' : '🟡 대기 중') + ' · ' + r.players.length + '명';
+  const st = $('tSteal'); st.textContent = tG.steal ? '약탈 켜짐' : '약탈 꺼짐'; st.className = 'btn small ' + (tG.steal ? 'purple' : 'gray');
+  const rows = $('tRows'); rows.textContent = ''; rows.classList.toggle('many', r.players.length > 24);
+  r.players.forEach((p, i) => {
+    const row = document.createElement('div'); row.className = 'row' + (p.on ? '' : ' off');
+    const a = document.createElement('span'); a.className = 'rk'; a.textContent = i + 1;
+    const b = document.createElement('span'); b.className = 'nm'; b.textContent = p.n + (p.sh ? ' 🛡' : '');
+    const c = document.createElement('span'); c.className = 'cn'; c.textContent = '🪙 ' + p.c.toLocaleString();
+    const d = document.createElement('span'); d.textContent = '🧃' + p.s;
+    row.append(a, b, c, d); rows.appendChild(row);
+  });
+  const feed = $('tFeed'); feed.textContent = '';
+  r.feed.slice().reverse().forEach(f => { const d = document.createElement('div'); d.textContent = f.m; feed.appendChild(d); });
+}
+setInterval(() => {
+  if (scr !== 'teacher' || !tG) return;
+  $('tTimer').textContent = tG.status === 'run' ? fmt(tG.endAt - (Date.now() + tOff)) : tG.status === 'end' ? '0:00' : '--:--';
+}, 250);
+$('tStart').onclick = () => tCmd('start', +$('tMins').value);
+$('tEnd').onclick = () => tCmd('end');
+$('tPlus').onclick = () => tCmd('time', 1);
+$('tMinus').onclick = () => tCmd('time', -1);
+$('tSteal').onclick = () => tCmd('steal', !(tG && tG.steal));
+let resetArm = 0;
+$('tReset').onclick = () => {
+  if (Date.now() - resetArm < 3000) { resetArm = 0; $('tReset').textContent = '초기화'; tCmd('reset'); }
+  else { resetArm = Date.now(); $('tReset').textContent = '한 번 더 누르면 초기화'; setTimeout(() => { $('tReset').textContent = '초기화'; }, 3000); }
+};
+$('toStudent').onclick = () => { clearInterval(tTimer); PWD = ''; show('login'); };
+
+/* ---------- 시작 ---------- */
+load();
+if (S.name) $('nameIn').value = S.name;
+['bg.jpg'].concat([0, 1, 2, 3, 4, 5, 6, 7].flatMap(i => ['c' + i + '.webp', 'i' + i + '.webp'])).forEach(f => { const im = new Image(); im.src = 'img/' + f; });
+if (location.hash === '#teacher') { $('pwBox').classList.remove('hidden'); }
+loopSync();
+</script>
+</body>
+</html>
