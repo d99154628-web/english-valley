@@ -158,7 +158,7 @@ function chest_(b) {
       var vid = v.id; delete v.id;
       c.put('p_' + vid, JSON.stringify(v), 1200);
       pushDelta_(vid, { k: 'swap', set: myCoins, from: myName });
-      feed_('🔄 ' + myName + ' ↔ ' + v.n + ' 코인 바꾸기!');
+      feed_('🔄 ' + myName + ' ⇄ ' + v.n + ' : 코인 바꾸기!');
       return { set: got, name: v.n };
     }
     var rich = others.filter(function (p) { return p.c > 0; });
@@ -173,14 +173,14 @@ function chest_(b) {
       v.sh -= 1;
       c.put('p_' + vid2, JSON.stringify(v), 1200);
       pushDelta_(vid2, { k: 'block', from: myName });
-      feed_('🛡 ' + v.n + ' 이(가) ' + myName + ' 의 약탈을 막았어요!');
+      feed_('🛡 ' + v.n + ' 방패 성공! ' + myName + '의 약탈 실패');
       return { blocked: true, name: v.n };
     }
     var amt = Math.floor(v.c * 0.25);
     v.c -= amt;
     c.put('p_' + vid2, JSON.stringify(v), 1200);
     pushDelta_(vid2, { k: 'steal', amt: amt, from: myName });
-    feed_('🐭 ' + myName + ' 이(가) ' + v.n + ' 의 코인 ' + amt + '개를 가져갔어요!');
+    feed_('🐭 ' + myName + ' → ' + v.n + ' : 코인 ' + amt + '개 약탈!');
     return { amt: amt, name: v.n };
   } finally { lock.releaseLock(); }
 }

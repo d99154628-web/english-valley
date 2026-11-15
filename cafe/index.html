@@ -82,7 +82,8 @@ kbd{display:inline-block;font-family:inherit;font-size:.7em;background:rgba(255,
 #bar{position:absolute;left:0;right:0;bottom:0;height:190px;display:flex;align-items:center;justify-content:center;gap:22px;padding:0 20px}
 #stock{display:flex;gap:10px;background:rgba(60,30,10,.55);border:3px solid rgba(255,220,150,.7);border-radius:22px;padding:10px 16px}
 .st{position:relative;width:92px;text-align:center;color:#fff;font-size:17px}
-.st img{height:100px;filter:drop-shadow(0 5px 4px rgba(0,0,0,.4));transition:transform .15s}
+.st span{display:block;white-space:nowrap}
+.st img{display:block;margin:0 auto;height:100px;filter:drop-shadow(0 5px 4px rgba(0,0,0,.4));transition:transform .15s}
 .st.zero img{filter:grayscale(1) brightness(.6);opacity:.7}
 .st.bump img{transform:scale(1.25)}
 .st b{position:absolute;right:2px;top:0;min-width:36px;height:36px;line-height:32px;border-radius:18px;background:#fff;color:#5a2f05;border:3px solid #c9963f;font-size:22px;font-weight:normal}
@@ -199,9 +200,9 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
     <div id="chestProg"><img src="img/i3.webp" alt=""><span id="pips"></span></div>
     <div id="bar">
       <div id="stock">
-        <div class="st"><img src="img/i0.webp" alt=""><b>0</b>오렌지</div>
-        <div class="st"><img src="img/i1.webp" alt=""><b>0</b>라즈베리</div>
-        <div class="st"><img src="img/i2.webp" alt=""><b>0</b>블랙베리</div>
+        <div class="st"><img src="img/i0.webp" alt=""><b>0</b><span>오렌지</span></div>
+        <div class="st"><img src="img/i1.webp" alt=""><b>0</b><span>라즈베리</span></div>
+        <div class="st"><img src="img/i2.webp" alt=""><b>0</b><span>블랙베리</span></div>
       </div>
       <button class="btn" id="quizBtn">📜 문제 풀고 만들기 <kbd>Space</kbd></button>
       <button class="btn purple" id="upBtn"></button>
@@ -410,9 +411,9 @@ async function sync() {
   if (!r || !r.game) return;
   off = r.now - Date.now(); G = r.game; topList = r.top || []; myRank = r.rank || 0; nPlayers = r.n || 1;
   (r.deltas || []).forEach(d => {
-    if (d.k === 'steal') { S.coins = Math.max(0, S.coins - d.amt); toast('🐭 ' + d.from + ' 이(가) 코인 ' + d.amt + '개를 가져갔어요!'); sfx('lose'); }
-    if (d.k === 'swap') { S.coins = d.set; toast('🔄 ' + d.from + ' 와(과) 코인이 바뀌었어요!'); sfx('lose'); }
-    if (d.k === 'block') { S.sh = Math.max(0, S.sh - 1); toast('🛡 방패가 ' + d.from + ' 의 약탈을 막았어요!', true); sfx('shield'); }
+    if (d.k === 'steal') { S.coins = Math.max(0, S.coins - d.amt); toast('🐭 ' + d.from + '에게 코인 ' + d.amt + '개를 뺏겼어요!'); sfx('lose'); }
+    if (d.k === 'swap') { S.coins = d.set; toast('🔄 ' + d.from + '! 코인이 서로 바뀌었어요!'); sfx('lose'); }
+    if (d.k === 'block') { S.sh = Math.max(0, S.sh - 1); toast('🛡 방패가 ' + d.from + '의 약탈을 막았어요!', true); sfx('shield'); }
   });
   route(); render(); save();
 }
@@ -603,9 +604,9 @@ async function pickChest(i) {
     const r = await api({ act: 'chest', id: S.id, name: S.name, coins: S.coins, kind });
     if (modal !== 'chest') return;
     if (!r || r.none || r.err) kind = 'gain';
-    else if (r.blocked) { msg = '🛡 ' + r.name + ' 의 방패에 막혔어요!'; icon = 'i6'; good = false; snd = 'nope'; }
-    else if (kind === 'steal') { S.coins += r.amt; msg = '😎 ' + r.name + ' 의 코인 ' + r.amt + '개를 가져왔어요!'; icon = 'i7'; snd = 'steal'; }
-    else { S.coins = r.set; msg = '🔄 1등 ' + r.name + ' 와(과) 코인을 바꿨어요!'; icon = 'i4'; snd = 'big'; }
+    else if (r.blocked) { msg = '🛡 ' + r.name + '의 방패에 막혔어요!'; icon = 'i6'; good = false; snd = 'nope'; }
+    else if (kind === 'steal') { S.coins += r.amt; msg = '😎 ' + r.name + '의 코인 ' + r.amt + '개를 가져왔어요!'; icon = 'i7'; snd = 'steal'; }
+    else { S.coins = r.set; msg = '🔄 1등 ' + r.name + '! 코인을 서로 바꿨어요!'; icon = 'i4'; snd = 'big'; }
   }
   if (kind === 'gain') { S.coins += bonus; msg = '코인 +' + bonus + '!'; icon = 'i5'; snd = 'coin'; }
   if (kind === 'x2') { S.coins *= 2; msg = '와! 코인 2배!'; icon = 'i4'; snd = 'big'; }
