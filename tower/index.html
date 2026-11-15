@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>잉글리시 밸리 타워</title>
+<title>말랑 프렌즈 · 잉글리시 타워</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 10 10%27%3E%3Ctext y=%278.5%27 font-size=%278%27%3E🏰%3C/text%3E%3C/svg%3E">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -105,6 +105,28 @@ th{background:#ece6ff}
 .tgrid.twide{margin-top:16px;grid-template-columns:1fr 1fr}@media(max-width:820px){.tgrid.twide{grid-template-columns:1fr}}.twide table td:first-child{max-width:340px}
 .evrow button:disabled{opacity:.4;cursor:not-allowed}
 .chips span{display:inline-block;background:#ece6ff;border-radius:12px;padding:3px 10px;margin:3px;font-weight:700}
+
+/* Plush Friends / November 2026 */
+html,body{background:#e9eee7}
+#join{background:radial-gradient(ellipse at 16% 22%,#f9f4df 0,transparent 52%),radial-gradient(ellipse at 90% 90%,#d9eadb 0,transparent 50%),#f3f5ed;color:#354e43}
+#join .card{position:relative;display:grid;grid-template-columns:250px 1fr;gap:24px;width:920px;max-width:96%;max-height:94%;padding:24px;background:rgba(255,255,255,.8);border:1px solid #fff;border-radius:30px;box-shadow:0 20px 65px #3d684b16;text-align:left}
+.entry-art{position:relative;min-height:360px;background:linear-gradient(150deg,#e7f2df,#eff3e9 60%,#f4ecd7);border-radius:22px;padding:24px 18px;overflow:hidden}
+.eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:#67866b}
+#join h1{font-size:25px;line-height:1.5;letter-spacing:-1.5px;margin-top:12px;text-shadow:none;color:#48614b}#join h1 strong{font-size:29px;color:#225d43}
+.hero-friend{position:absolute;left:10px;right:10px;top:130px;height:230px;background-image:url('plush-friends.webp?v=20261115');background-size:300% 200%;background-position:0 0;background-repeat:no-repeat;animation:plushFloat 4s ease-in-out infinite}
+.art-caption{position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:12px;color:#68866e;font-weight:700}
+@keyframes plushFloat{50%{transform:translateY(-6px) rotate(-2deg)}}
+.entry-heading{font-size:20px;font-weight:900;letter-spacing:-.8px;margin-bottom:10px}.entry-heading span{display:block;font-size:11px;color:#699674;letter-spacing:.4px;margin-top:5px}
+#join p{font-size:12px;line-height:1.7;color:#6d7d72;margin-bottom:12px}
+#nameInput{background:#fff;border:2px solid #c5d9c6;border-radius:12px;font-size:16px;min-width:0;flex:1;text-align:left;padding:10px 12px;color:#354e43}
+.namerow{justify-content:stretch;gap:8px}.btn,#joinBtn{color:white;background:#43815b;box-shadow:0 3px 0 #2b6042;border-radius:12px;font-size:15px;padding:10px 18px}.btn:active{box-shadow:0 1px 0 #2b6042}.btn.ghost{color:#3b6547;background:#ffffffbd;border:1px solid #c4d5c4}
+#skinGrid{grid-template-columns:repeat(6,1fr);max-height:160px;gap:7px;padding:3px;margin:10px 0;scrollbar-color:#c5d9c6 transparent;scrollbar-width:thin}.skin{border:2px solid #e4e9de;background:#f6f7f0;border-radius:14px;transition:background .2s,border-color .2s,transform .2s}.skin:hover{transform:translateY(-2px);background:#eef4e6}.skin.sel{border-color:#539267;background:#e4f0dd;box-shadow:0 2px 8px #43815b20}.skin[data-i="138"],.skin[data-i="139"],.skin[data-i="140"],.skin[data-i="141"],.skin[data-i="142"],.skin[data-i="143"]{background-color:#edf3e5}
+#join .shop{font-size:11px;justify-content:flex-start;gap:4px}#join .shop b{font-size:12px;color:#7b8148}#join .shop button{color:#5c7360;border:1px solid #d5dfce;background:#fafbf5;font-size:11px;padding:4px 7px}#join .shop button.sel{border-color:#69966e;background:#e4efdd}#joinMsg{font-size:12px;min-height:16px;color:#a65c47;margin:2px 0}
+.chip{background:rgba(34,66,50,.83);border-color:#ffffff80;border-radius:14px;box-shadow:0 2px 6px #172b2820;backdrop-filter:blur(6px)}
+#quiz{background:rgba(25,47,37,.62);backdrop-filter:blur(5px)}#quiz .box{background:#fcfcf5;border:3px solid #d1e2bc;color:#354e43;box-shadow:0 15px 55px #183b3640}#qTag{color:#5c8964}#qQ{font-size:calc(var(--u)*23px)}#qKo{color:#7b8e72}#qChoices{grid-template-columns:1fr 1fr}#qChoices button{border:2px solid #dce5d3;font-size:calc(var(--u)*18px);color:#354e43;min-height:calc(var(--u)*64px)}#qChoices button b{background:#6c9575}#qChoices button:hover:not(:disabled){border-color:#6c9575}#qChoices button.ok{background:#d7efd1;border-color:#69a062}#qFeed{font-size:calc(var(--u)*17px)}
+#teacher{background:#f2f5ed;color:#354e43}.panel{box-shadow:0 4px 15px #3b684615}.tb{background:#538564}th,.chips span{background:#e5eddf}#tTime{color:#43815b}
+@media(max-width:700px){#join .card{grid-template-columns:170px 1fr;gap:14px;padding:14px}.entry-art{padding:16px 10px;min-height:300px}#join h1{font-size:19px}#join h1 strong{font-size:21px}.hero-friend{top:100px;height:165px}.entry-heading{font-size:16px}#join p{font-size:10px}#skinGrid{max-height:115px}.eyebrow{font-size:8px;letter-spacing:1px}#nameInput,#joinBtn{font-size:12px}#join .shop{font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -113,14 +135,14 @@ th{background:#ece6ff}
 
   <div id="join">
     <div class="card">
-      <h1>🏰 잉글리시 밸리 타워</h1>
-      <p>끝없이 높은 탑을 친구들과 함께 올라가요! 점프는 ⬆ 또는 스페이스, 공중에서 한 번 더 누르면 더블점프!<br>이모티콘 1~4 · 연속 정답으로 얻은 ❄️⚡ 아이템은 X키 · 🪙 코인을 모아 꼬리 효과를 사 보세요</p>
+      <div class="entry-art"><div class="eyebrow">ENGLISH VALLEY / TOWER</div><h1>말랑 프렌즈<br><strong>잉글리시 타워</strong></h1><div class="hero-friend" aria-hidden="true"></div><div class="art-caption">작은 점프, 커다란 모험.</div></div><div class="entry-content"><div class="entry-heading">오늘은 누구와 올라갈까요?<span>NEW · 보송보송 동물 친구 6종</span></div>
+      <p>← → 이동 · ⬆ / 스페이스 점프 · 공중에서 한 번 더!<br>문제를 풀어 에너지를 채우고 친구들과 더 높이 올라가요.</p>
       <div class="namerow"><input id="nameInput" maxlength="8" placeholder="닉네임 (8글자)" autocomplete="off"><button class="btn" id="joinBtn">입장하기 🚀</button></div>
       <div id="joinMsg"></div>
       <div class="shop"><b id="coinNow">🪙 0</b><span>꼬리 효과:</span><span id="trailRow"><button type="button" data-k="0" data-p="0">없음<i></i></button> <button type="button" data-k="1" data-p="40">✨ 별가루<i></i></button> <button type="button" data-k="2" data-p="40">💗 하트<i></i></button> <button type="button" data-k="3" data-p="60">🌈 무지개<i></i></button></span></div>
       <div id="skinGrid"></div>
       <div class="shop"><span>👥 모둠:</span><span id="teamRow"><button type="button" data-k="0">없음</button> <button type="button" data-k="1">1</button> <button type="button" data-k="2">2</button> <button type="button" data-k="3">3</button> <button type="button" data-k="4">4</button> <button type="button" data-k="5">5</button> <button type="button" data-k="6">6</button></span></div>
-    </div>
+    </div></div>
     <button class="btn sm ghost" id="tBtn">👩‍🏫 교사용</button>
   </div>
 
@@ -163,7 +185,7 @@ th{background:#ece6ff}
 </div>
 
 <div id="teacher" class="hidden">
-  <h1>👩‍🏫 선생님 화면 · 잉글리시 밸리 타워 <button class="tb x" id="toStudent" style="font-size:14px;padding:6px 12px;margin-left:10px">🎮 학생 화면으로</button></h1>
+  <h1>👩‍🏫 선생님 화면 · 말랑 프렌즈 · 잉글리시 타워 <button class="tb x" id="toStudent" style="font-size:14px;padding:6px 12px;margin-left:10px">🎮 학생 화면으로</button></h1>
   <div class="tgrid">
     <div class="panel">
       <div id="tState">연습 시간</div>
@@ -204,7 +226,8 @@ th{background:#ece6ff}
     </div>
   </div>
 </div>
-<script src="questions.js?v=7"></script>
-<script src="game.js?v=22"></script>
+<script src="questions.js?v=20261115b"></script>
+<script src="game.js?v=20261115b"></script>
 </body>
 </html>
+

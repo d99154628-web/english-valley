@@ -35,13 +35,13 @@ function tone(f, d, type, vol, slide, delay) {
   o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + 0.02);
 }
 const SFX = {
-  jump: () => tone(380, 0.14, 'square', 0.07, 320), djump: () => tone(560, 0.16, 'square', 0.07, 400),
+  jump: () => tone(330, 0.13, 'sine', 0.08, 240), djump: () => { tone(494, 0.15, 'sine', 0.07, 330); tone(740, 0.11, 'triangle', 0.035, 160, 0.045); },
   boing: () => tone(240, 0.3, 'sine', 0.2, 600), gift: () => { tone(660, 0.1, 'triangle', 0.15); tone(880, 0.14, 'triangle', 0.15, 0, 0.09); },
   correct: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, 'triangle', 0.16, 0, i * 0.08)); },
-  wrong: () => tone(200, 0.35, 'sawtooth', 0.1, -80),
-  beep: () => tone(660, 0.12, 'square', 0.1), go: () => tone(990, 0.35, 'square', 0.12),
+  wrong: () => { tone(330, 0.18, 'sine', 0.065, -35); tone(262, 0.22, 'sine', 0.055, -25, 0.15); },
+  beep: () => tone(660, 0.12, 'sine', 0.08), go: () => { [523,659,784,1047].forEach((f,i)=>tone(f,.28,'triangle',.09,0,i*.06)); },
   whoosh: () => tone(900, 0.6, 'sawtooth', 0.06, -700),
-  bonk: () => tone(150, 0.25, 'square', 0.12, -90), pop: () => tone(700, 0.1, 'sine', 0.12, 300),
+  bonk: () => tone(180, 0.17, 'sine', 0.08, -70), pop: () => tone(700, 0.1, 'sine', 0.12, 300),
   ice: () => { tone(1200, 0.25, 'triangle', 0.12, -700); tone(1500, 0.15, 'sine', 0.08, -500, 0.05); },
   coin: () => { tone(1320, 0.08, 'triangle', 0.09); tone(1760, 0.12, 'triangle', 0.09, 0, 0.06); }, win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 'triangle', 0.16, 0, i * 0.11)); },
 };
@@ -50,12 +50,11 @@ const sfx = (n) => { try { SFX[n](); } catch (e) {} };
 /* ---------- 배경음악: 저작권 없는 크리스마스 캐롤(전통 곡) — 브라우저에서 직접 연주해서 번갈아 재생 ---------- */
 const NOTE_IDX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 function freqOf(n) { const m = /^([A-G])(#|b)?(\d)$/.exec(n); let k = NOTE_IDX[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (+m[3] + 1) * 12; return 440 * Math.pow(2, (k - 69) / 12); }
+// Original instrumental miniatures, composed for this game.
 const SONGS = [
-  { name: '징글벨', bpm: 132, bass: ['C3', 'G2'], notes: 'E4:1 E4:1 E4:2 E4:1 E4:1 E4:2 E4:1 G4:1 C4:1.5 D4:.5 E4:4 F4:1 F4:1 F4:1.5 F4:.5 F4:1 E4:1 E4:1 E4:.5 E4:.5 G4:1 G4:1 F4:1 D4:1 C4:4' },
-  { name: 'We Wish You a Merry Christmas', bpm: 126, bass: ['G2', 'D3'], notes: 'D4:1 G4:1 G4:.5 A4:.5 G4:.5 F#4:.5 E4:1 E4:1 E4:1 A4:1 A4:.5 B4:.5 A4:.5 G4:.5 F#4:1 D4:1 D4:1 B4:1 B4:.5 C5:.5 B4:.5 A4:.5 G4:1 E4:1 D4:.5 D4:.5 E4:1 A4:1 F#4:1 G4:3' },
-  { name: '고요한 밤', bpm: 84, bass: ['C3', 'G2'], notes: 'G4:1.5 A4:.5 G4:1 E4:3 G4:1.5 A4:.5 G4:1 E4:3 D5:2 D5:1 B4:3 C5:2 C5:1 G4:3 A4:2 A4:1 C5:1.5 B4:.5 A4:1 G4:1.5 A4:.5 G4:1 E4:3 A4:2 A4:1 C5:1.5 B4:.5 A4:1 G4:1.5 A4:.5 G4:1 E4:3 D5:2 D5:1 F5:1.5 D5:.5 B4:1 C5:3 E5:3 C5:1 G4:1 E4:1 G4:1.5 F4:.5 D4:1 C4:3' },
-  { name: '창밖을 보라 (Deck the Halls)', bpm: 120, bass: ['C3', 'G2'], notes: 'G5:1.5 F5:.5 E5:1 D5:1 C5:1 D5:1 E5:1 C5:1 D5:.5 E5:.5 F5:.5 D5:.5 E5:1.5 D5:.5 C5:1 B4:1 C5:2' },
-  { name: '기쁘다 구주 오셨네', bpm: 108, bass: ['C3', 'F3'], notes: 'C6:1 B5:1 A5:1.5 G5:.5 F5:1 E5:1 D5:1 C5:2' },
+ {name:'구름 위 산책', bpm:110, bass:['C3','G2'], notes:'C5:1 E5:.5 G5:.5 A5:1 G5:1 E5:1 D5:.5 E5:.5 G5:2 A5:1 C6:.5 A5:.5 G5:1 E5:1 D5:1 E5:.5 D5:.5 C5:2 E5:1 G5:.5 A5:.5 C6:1 A5:1 G5:1 E5:1 D5:2 E5:1 D5:1 C5:4'},
+ {name:'말랑 친구들의 모험', bpm:118, bass:['F3','C3'], notes:'F5:.5 A5:.5 C6:1 A5:1 G5:1 F5:1 E5:.5 F5:.5 G5:2 A5:1 G5:.5 F5:.5 E5:1 C5:1 D5:1 F5:1 E5:2 F5:.5 A5:.5 C6:1 D6:1 C6:1 A5:1 G5:1 F5:2 G5:1 E5:1 F5:4'},
+ {name:'별빛 솜사탕', bpm:102, bass:['G2','D3'], notes:'G4:1 B4:1 D5:1 E5:1 D5:1 B4:.5 A4:.5 G4:2 A4:1 B4:.5 D5:.5 E5:1 G5:1 F#5:1 E5:1 D5:2 B4:1 D5:1 G5:1 F#5:1 E5:1 D5:1 B4:2 A4:1 B4:1 G4:4'}
 ];
 const Music = {
   gain: null, on: true, idx: Math.floor(Math.random() * SONGS.length), timer: null, started: false, nodes: [],
@@ -73,8 +72,8 @@ const Music = {
   next(delay) {
     const song = SONGS[this.idx % SONGS.length]; this.idx++;
     const spb = 60 / song.bpm, t0 = ac.currentTime + delay; let beat = 0;
-    for (const tok of song.notes.split(' ')) { const [n, d] = tok.split(':'), len = parseFloat(d); this.note(freqOf(n), t0 + beat * spb, len * spb * 0.95, 0.075, 'triangle'); beat += len; }
-    for (let b = 0, k = 0; b < beat; b += 4, k++) this.note(freqOf(song.bass[k % 2]), t0 + b * spb, spb * 3.6, 0.05, 'sine');
+    for (const tok of song.notes.split(' ')) { const [n, d] = tok.split(':'), len = parseFloat(d); this.note(freqOf(n), t0 + beat * spb, Math.min(.65, len * spb * 0.9), 0.045, 'sine'); beat += len; }
+    for (let b = 0, k = 0; b < beat; b += 4, k++) this.note(freqOf(song.bass[k % 2]), t0 + b * spb, spb * 2.8, 0.025, 'sine');
     setTimeout(() => { try { if (typeof toastMusic === 'function') toastMusic(song.name); } catch (e) {} }, delay * 1000);
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.next(1.5), (delay + beat * spb + 1.5) * 1000 - 1400);
@@ -174,6 +173,24 @@ function buildZone(seed, z) {
   if (zoneCache.size > 200) zoneCache.clear(); zoneCache.set(key, out); return out;
 }
 
+const PLUSH = new Image(); let plushOk = false;
+PLUSH.onload = () => { plushOk = true; refreshPreviews(); };
+PLUSH.src = 'plush-friends.webp?v=20261115';
+const PLUSH_NAMES = ['구름 토끼', '복숭아 돼지', '살구 햄스터', '밤하늘 고양이', '바닐라 강아지', '민트 거북이'];
+function drawPlush(g, skin, x, y, o) {
+  const k = skin - 138, t = o.t || 0, run = o.anim === 1;
+  const s = o.scale || 1.35, bs = Math.max(-0.4, Math.min(0.4, o.bs || 0));
+  const breath = Math.sin(t * 2.5) * 0.018, step = run ? Math.sin(t * 15) : 0;
+  g.save(); g.translate(x, y - (run ? Math.abs(step) * 2 : 0));
+  g.scale((o.flip ? -1 : 1) * s, s);
+  g.rotate(run ? step * 0.045 : Math.sin(t * 1.8) * 0.018);
+  g.scale(1 - bs * 0.65 + breath + step * 0.025, 1 + bs - breath - step * 0.035);
+  if (plushOk) {
+    const cw = PLUSH.width / 3, ch = PLUSH.height / 2;
+    g.drawImage(PLUSH, k % 3 * cw, Math.floor(k / 3) * ch, cw, ch, -31, -63, 62, 62);
+  } else drawJelly(g, 50 + k, 0, 0, {t, scale: 1, anim: o.anim});
+  g.restore();
+}
 /* ---------- 캐릭터: 말랑말랑 동글동글 30종 (동물 10종 × 색 3가지) ---------- */
 const SPECIES = [   // 동글동글 말랑 친구들: 색 3가지 × (무늬 없음 / 머리 얼룩 / 점 무늬)
   { n: 'cat', cols: ['#ffd8b0', '#e3e6ee', '#ffc27d', '#d9c8ff', '#b7e3ff'], patch: ['#f08a4a', '#8d93a6', '#fff3e0', '#9a7be0', '#6fb0e8'] },
@@ -187,7 +204,7 @@ const SPECIES = [   // 동글동글 말랑 친구들: 색 3가지 × (무늬 없
   { n: 'pig', cols: ['#ffc2d2', '#ffdce8', '#f8b4e0', '#ffe2a8', '#d4c4ff'], patch: ['#ff90ae', '#f4a8c4', '#e88ac8', '#f0b050', '#a58ae0'] },
   { n: 'mouse', cols: ['#e6e6f2', '#fbe0d0', '#d6e8ff', '#ffd4e8', '#d4f5d0'], patch: ['#b4b4cc', '#eab8a0', '#a8c8f0', '#f09ac4', '#8fcf88'] },
 ];
-const NSKIN = 138, JELLY0 = 50;   // 50~85 = 젤리 시트1, 86~137 = 젤리 시트2(모자)
+const NSKIN = 144, JELLY0 = 50;   // 50~85 = 젤리 시트1, 86~137 = 젤리 시트2(모자)
 const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; SHEET.src = 'chars.png?v=1';
 const SHEET2 = new Image(); SHEET2.onload = () => { sheetOk2 = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; let sheetOk2 = false; SHEET2.src = 'chars2.png?v=1';
 const OUT = '#8a5646';
@@ -213,6 +230,7 @@ function drawJelly(g, skin, x, y, o) {
   g.restore();
 }
 function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, flip, scale, anim, bs, bv}
+  if (skin >= 138 && skin < 144) return drawPlush(g, skin, x, y, o);
   if (skin < JELLY0) skin = JELLY0 + (skin % 36);   // 예전 캐릭터 번호는 젤리로 대체
   return drawJelly(g, skin, x, y, o);
   const sp = SPECIES[skin % 10], v = Math.floor(skin / 10) % 5, col = sp.cols[v], pc = sp.patch[v], n = sp.n, pv = v === 3 ? 1 : v === 4 ? 2 : v;
@@ -548,7 +566,7 @@ const Shop = {   // 코인·구매한 캐릭터·꼬리 효과 (이 크롬북에
   flush() { if (this.dirty) { this.dirty = false; this.save(); } },
 };
 Shop.load();
-let skin = Number.isInteger(profile.skin) && profile.skin >= JELLY0 && profile.skin < NSKIN ? profile.skin : JELLY0 + Math.floor(Math.random() * (NSKIN - JELLY0));
+let skin = Number.isInteger(profile.skin) && profile.skin >= JELLY0 && profile.skin < NSKIN ? profile.skin : 138 + Math.floor(Math.random() * 6);
 $('nameInput').value = profile.name || '';
 const grid = $('skinGrid');
 let buyArm = -1;
@@ -560,10 +578,10 @@ function refreshShop() {
   [...$('teamRow').children].forEach((b) => b.classList.toggle('sel', +b.dataset.k === (profile.team | 0)));
 }
 const armBuy = (id, text) => { buyArm = id; setMsg(text); sfx('pop'); setTimeout(() => { if (buyArm === id) { buyArm = -1; setMsg(''); } }, 3500); };
-const SKORDER = []; for (let i = JELLY0; i < NSKIN; i++) SKORDER.push(i);
+const SKORDER = [138,139,140,141,142,143]; for (let i = JELLY0; i < 138; i++) SKORDER.push(i);
 function refreshPreviews() { [...grid.children].forEach((b) => previewSkin(b.querySelector('canvas'), +b.dataset.i)); }
 for (const i of SKORDER) {
-  const b = document.createElement('button'); b.className = 'skin'; b.type = 'button'; b.dataset.i = i;
+  const b = document.createElement('button'); b.className = 'skin'; b.type = 'button'; b.dataset.i = i; b.title = i >= 138 ? PLUSH_NAMES[i - 138] : '젤리 친구 ' + (i - 49); b.setAttribute('aria-label', b.title);
   const c = document.createElement('canvas'); previewSkin(c, i); const lk = document.createElement('span'); lk.className = 'lock'; b.append(c, lk);
   b.onclick = () => {
     unlock();
@@ -672,7 +690,7 @@ const Quiz = {
     this.opts = opts;
     const box = $('qChoices'); box.innerHTML = '';
     opts.forEach((o, i) => { const b = document.createElement('button'); const n = document.createElement('b'); n.textContent = i + 1; b.append(n, document.createTextNode(o.t)); b.onclick = () => this.pick(i); box.append(b); });
-    $('quiz').classList.remove('hidden');
+    $('quiz').classList.remove('hidden'); if (Music.gain && !muted) Music.gain.gain.setTargetAtTime(0.28, ac.currentTime, .15);
   },
   pick(i) {
     if (this.locked || !this.open) return; this.locked = true;
@@ -684,12 +702,12 @@ const Quiz = {
     const cb = this.onDone;
     setTimeout(() => { this.hide(); cb && cb(ok); }, ok ? 900 : 1900);
   },
-  hide() { this.open = false; this.locked = true; $('quiz').classList.add('hidden'); },
+  hide() { if (Music.gain && !muted) Music.gain.gain.setTargetAtTime(1, ac.currentTime, .25); this.open = false; this.locked = true; $('quiz').classList.add('hidden'); },
 };
 document.addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT') return;
   if (e.key === 'Enter' && scene) scene.useRetry();
-  if (Quiz.open && /^[1-3]$/.test(e.key)) Quiz.pick(+e.key - 1);
+  if (Quiz.open && /^[1-4]$/.test(e.key)) Quiz.pick(+e.key - 1);
   else if (!Quiz.open && /^[1-4]$/.test(e.key) && scene && !$('game').classList.contains('hidden')) scene.emote(+e.key);
   if ((e.code === 'KeyX' || e.code === 'KeyZ') && !e.repeat && scene && !Quiz.open) scene.useItem();
   if (e.key === 'm' || e.key === 'M') $('muteBtn').click();
@@ -1208,7 +1226,8 @@ class Scene {
     const h = 18;
     g.fillStyle = 'rgba(40,25,70,.22)'; this.rr(g, pl.x + 2, pl.y + 5, pl.w, h, 9); g.fill();
     g.fillStyle = edge; this.rr(g, pl.x, pl.y, pl.w, h, 9); g.fill();
-    g.fillStyle = fill; this.rr(g, pl.x + 1.5, pl.y + 1.5, pl.w - 3, h - 5, 8); g.fill();
+    const cushion = g.createLinearGradient(0, pl.y, 0, pl.y + h); cushion.addColorStop(0, shade(fill,.48)); cushion.addColorStop(.5, fill); cushion.addColorStop(1, edge);
+    g.fillStyle = cushion; this.rr(g, pl.x + 1.5, pl.y + 1.5, pl.w - 3, h - 5, 8); g.fill();
     g.fillStyle = 'rgba(255,255,255,.75)'; this.rr(g, pl.x + 7, pl.y + 3, pl.w - 14, 4, 2); g.fill();
     g.fillStyle = 'rgba(255,255,255,.4)'; for (let x = pl.x + 22; x < pl.x + pl.w - 10; x += 26) { g.beginPath(); g.arc(x, pl.y + 12, 2.2, 0, 7); g.fill(); }
     if (pl.mv) {   // 움직이는 판 표시: 양옆 화살표
@@ -1372,3 +1391,4 @@ if (new URLSearchParams(location.search).has('teacher')) { askTeacher(); }
 fit();
 window.__et = { sprite, drawTheme, THEMES, Music, Net, Quiz, buildZone, mapOf, get scene() { return scene; } };
 })();
+
