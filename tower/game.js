@@ -293,7 +293,7 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. o: {t, fl
   if (v === 4) { for (let k = 0; k < 5; k++) { const a = k * Math.PI * 2 / 5; ell(-10 + Math.cos(a) * 4.2, BY - RY + 1 + Math.sin(a) * 4.2, 3.2, 3.2, '#ffffff'); } ell(-10, BY - RY + 1, 2.4, 2.4, '#ffd23f'); }   // 꽃
   g.restore();
 }
-function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); g.clearRect(0, 0, 64, 64); drawChar(g, skin, 32, 56, { t: 0, anim: 0, scale: 1.2 }); }
+function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); g.clearRect(0, 0, 64, 64); drawChar(g, skin, 32, 56, { t: 0, anim: 0, scale: skin >= 138 ? 0.85 : 1.2 }); }
 
 /* ---------- 배경: 직접 그린 10가지 하늘 나라 ---------- */
 const THEMES = [
