@@ -43,6 +43,12 @@ const SFX = {
   whoosh: () => tone(900, 0.6, 'sawtooth', 0.06, -700),
   bonk: () => tone(180, 0.17, 'sine', 0.08, -70), pop: () => tone(700, 0.1, 'sine', 0.12, 300),
   ice: () => { tone(1200, 0.25, 'triangle', 0.12, -700); tone(1500, 0.15, 'sine', 0.08, -500, 0.05); },
+  fanfare: () => {   // 🎺 게임 끝 팡파레
+    const N = [[392, 0, .16], [392, .17, .16], [392, .34, .16], [523, .51, .42], [466, .95, .2], [523, 1.17, .2], [587, 1.39, .2], [659, 1.61, .95]];
+    N.forEach(([f, t, d]) => { tone(f, d, 'sawtooth', 0.075, 0, t); tone(f, d, 'square', 0.03, 0, t); tone(f / 2, d, 'triangle', 0.09, 0, t); });
+    [523, 784, 1047].forEach((f) => tone(f, 1.0, 'triangle', 0.07, 0, 1.61));
+    [1319, 1568, 2093, 1568, 2093].forEach((f, i) => tone(f, 0.12, 'sine', 0.05, 0, 1.7 + i * 0.1));
+  },
   coin: () => { tone(1320, 0.08, 'triangle', 0.09); tone(1760, 0.12, 'triangle', 0.09, 0, 0.06); }, win: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, 'triangle', 0.16, 0, i * 0.11)); },
 };
 const sfx = (n) => { try { SFX[n](); } catch (e) {} };
@@ -817,9 +823,17 @@ class Scene {
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now; this.t += dt;
     const s = Net.s, sNow = serverNow();
     const countdown = s.status === 'play' && sNow < s.startAt;
-    const running = s.status === 'play' && !countdown;
-    this.running = running;
-    this.frozen = this.quizBusy || countdown || s.status === 'ended';
+    const over = s.status === 'ended' || (s.status === 'play' && !countdown && s.endsAt > 0 && sNow >= s.endsAt);   // 끝나는 시각이 되면 모두 같이 멈춤
+    const running = s.status === 'play' && !countdown && !over;
+    this.running = running; this.over = over;
+    if (over && this.overRound !== s.round) {   // 게임 끝 순간: 한 번만 팡파레
+      this.overRound = s.round;
+      if (Quiz.open) Quiz.hide(); this.quizBusy = false;
+      this.bal = null; this.wing = null; this.p.vx = 0;
+      if (this.lastStatus !== 'lobby' && Net.round === s.round) { sfx('fanfare'); this.countN = null; this.center('🏁 게임 끝!'); this.endBanner = true; }
+    }
+    if (!over && s.status === 'play' && s.fin && this.finSeen !== s.round && !countdown) { this.finSeen = s.round; this.toast('🏁 선생님이 게임을 끝내요! 3 · 2 · 1…', 2600); sfx('beep'); }
+    this.frozen = this.quizBusy || countdown || over;
     const steps = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / steps;
     for (let i = 0; i < steps; i++) this.physics(h, running);
     if (running) {
@@ -837,7 +851,7 @@ class Scene {
     this.camY += (Math.min(this.p.y - 330, -460) - this.camY) * Math.min(1, dt * (this.plummet ? 16 : 7));
     if (this.retry && this.p.y < -320) this.retry = null;
     this.render();
-    if (now - this.hudAt > 120) { this.hudAt = now; this.hud(sNow, countdown, running); Shop.flush(); }
+    if (now - this.hudAt > 120) { this.hudAt = now; this.hud(sNow, countdown, running, over); Shop.flush(); }
     Scene.jumpReleased = false;
   }
   fxId() { return this.bal ? 1 : (this.wing || this.rise) ? 2 : 0; }
@@ -1251,7 +1265,7 @@ class Scene {
     g.beginPath(); g.ellipse(gf.x - 6, y - 15, 6, 4, -0.5, 0, 7); g.ellipse(gf.x + 6, y - 15, 6, 4, 0.5, 0, 7); g.fill();
   }
   /* ----- HUD ----- */
-  hud(sNow, countdown, running) {
+  hud(sNow, countdown, running, over) {
     const s = Net.s;
     $('hudH').textContent = `📏 ${heightOf(this.p.y)} m · 최고 ${this.best}`;
     const my = this.best + this.correct * GAME.pointsPer + this.bo;
@@ -1269,7 +1283,7 @@ class Scene {
     $('retryBtn').classList.toggle('hidden', !this.retry || this.lives <= 0);
         let rem = null, phase = '';
     if (s.status === 'lobby') phase = '🛝 연습 시간 · 선생님이 곧 시작해요! 마음껏 뛰어 보세요';
-    else if (s.status === 'ended') { rem = 0; phase = '🏁 게임 끝'; }
+    else if (over) { rem = 0; phase = s.status === 'ended' && Net.rank ? '🏁 게임 끝' : '🏁 게임 끝! 순위를 계산하고 있어요…'; }
     else if (countdown) { rem = s.duration * 1000; phase = '준비!'; }
     else { rem = s.endsAt - sNow; phase = '🎁 선물 상자를 먹으면 퀴즈! 정답이면 ❤️ 생명 +1 · 🎈 풍선 · 🥚 새 알'; }
     { const ev = s.ev; if (running && ev && sNow < ev.until && ev.k !== 'balloon') phase = (ev.k === 'gold' ? '⚡ 골든타임! 점수 2배' : '🌙 달나라 중력! 둥실둥실') + ` · ${Math.ceil((ev.until - sNow) / 1000)}초`; }
@@ -1278,15 +1292,16 @@ class Scene {
     timer.classList.toggle('warn', running && rem != null && rem < 10500);
     $('phase').textContent = phase;
     if (countdown) { const n = Math.ceil((s.startAt - sNow) / 1000); if (n !== this.countN) { this.countN = n; this.center(String(n)); sfx('beep'); } }
-    else if (this.countN != null && s.status === 'play') { this.countN = null; this.center('GO!'); sfx('go'); setTimeout(() => this.center(null), 700); }
+    else if (this.countN != null && s.status === 'play' && !over) { this.countN = null; this.center('GO!'); sfx('go'); setTimeout(() => this.center(null), 700); }
     else if (s.status === 'ended') this.showResult();
-    else if (this.countN != null) { this.countN = null; this.center(null); }
+    else if (this.countN != null && !over) { this.countN = null; this.center(null); }
     if (s.status !== 'ended') this.resultShown = false;
+    if (!over && this.endBanner) { this.endBanner = false; this.center(null); }
   }
   showResult() {
     if (this.resultShown) { return; }
     const rank = Net.rank; if (!rank) return;
-    this.resultShown = true; sfx('win');
+    this.resultShown = true; sfx('win'); if (this.endBanner) { this.endBanner = false; this.center(null); }
     const me = rank.find((r) => r[5] === profile.id);
     Shop.flush();
     $('myRank').textContent = me ? `${me[1]} 님은 ${me[0]}등! ⭐ ${me[2]}점 · 정답 ${me[3]}개 · 최고 ${me[4]}m · 🪙 +${this.runCoins}` : `수고했어요! 🪙 +${this.runCoins}`;
@@ -1344,13 +1359,13 @@ async function askTeacher() {
   catch (e) { alert('서버에 연결하지 못했어요.'); }
 }
 $('tBtn').onclick = askTeacher; $('tBtn2').onclick = () => { if (tpw) openTeacher(); else askTeacher(); };
-function openTeacher() { $('teacher').classList.remove('hidden'); clearTimeout(tTimer); tPoll(); }
+function openTeacher() { unlock(); $('teacher').classList.remove('hidden'); clearTimeout(tTimer); tPoll(); }
 $('toStudent').onclick = () => { $('teacher').classList.add('hidden'); clearTimeout(tTimer); };
 async function admin(cmd, extra) {
   try { const r = await post({ act: 'admin', pw: tpw, cmd, ...(extra || {}) }); if (r && r.ok) renderT(r); else if (r && r.error) alert(r.error); return r; } catch (e) { return null; }
 }
 const fmt = (sec) => { sec = Math.max(0, Math.round(sec)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
-let tData = null, tOff = 0;
+let tData = null, tOff = 0, tOverRound = null;
 function renderT(r) {
   tData = r; tOff = r.now - Date.now();
   const s = r.s; $('tN').textContent = `접속 ${r.n}명`;
@@ -1372,14 +1387,18 @@ function renderT(r) {
 }
 function drawT() {
   if (!tData) return; const s = tData.s, now = Date.now() + tOff;
-  $('tTime').textContent = s.status === 'play' ? fmt((s.endsAt - now) / 1000) : s.status === 'ended' ? '00:00' : fmt(s.duration);
+  const tOver = s.status === 'ended' || (s.status === 'play' && now >= s.endsAt);
+  $('tTime').textContent = tOver ? '00:00' : s.status === 'play' ? fmt((s.endsAt - now) / 1000) : fmt(s.duration);
+  if (tOver) $('tState').textContent = '🏁 게임 끝';
+  if (tOver && tOverRound !== s.round) { const first = tOverRound === null; tOverRound = s.round; if (!first || s.status === 'play') { sfx('fanfare'); clearTimeout(tTimer); tTimer = setTimeout(tPoll, 600); } }
+  if (!tOver && tOverRound === null) tOverRound = -1;
 }
 async function tPoll() { await admin('state'); clearTimeout(tTimer); tTimer = setTimeout(tPoll, 2000); }
 setInterval(drawT, 250);
 $('tPlus').onclick = () => admin('addTime', { delta: 1 });
 $('tMinus').onclick = () => admin('addTime', { delta: -1 });
-$('tStart').onclick = () => { const s = tData && tData.s; if (s && s.status === 'ended' && !confirm('새 게임을 시작할까요?')) return; admin('start'); };
-$('tEnd').onclick = () => { if (confirm('지금 게임을 끝낼까요?')) admin('end'); };
+$('tStart').onclick = () => { const s = tData && tData.s; if (s && s.status === 'ended' && !confirm('새 게임을 시작할까요?')) return; unlock(); admin('start'); };
+$('tEnd').onclick = () => { unlock(); if (confirm('지금 게임을 끝낼까요?')) admin('end'); };
 $('tReset').onclick = () => admin('reset');
 $('evGold').onclick = () => admin('event', { k: 'gold' });
 $('evMoon').onclick = () => admin('event', { k: 'moon' });
