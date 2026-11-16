@@ -628,12 +628,12 @@ async function joinGame() {
   $('joinBtn').disabled = true; $('joinMsg').textContent = '연결하는 중…';
   try {
     const t0 = Date.now();
-    const res = await post({ act: 'sync', id: profile.id, name, skin, x: W / 2, y: 0, tr: [], sq: 0, round: -1, h: 0, c: 0 });
+    const res = await post({ act: 'sync', id: profile.id, name, skin, x: W / 2, y: 0, tr: [], sq: 0, round: -1, h: 0, c: 0, join: 1 });
     const t1 = Date.now();
     if (!res || !res.ok) throw new Error('bad');
     takeClock(t0, t1, res.now);
     $('joinBtn').disabled = false; $('joinMsg').textContent = '';
-    Net.me = profile;
+    Net.me = profile; Net.gen = (res.s && res.s.gen) | 0;
     $('join').classList.add('hidden'); $('game').classList.remove('hidden');
     applySync(res, true);
     if (!scene) scene = new Scene();
@@ -652,8 +652,9 @@ async function poll() {
   const tr = sc.trail.splice(0, sc.trail.length).slice(-8), hit = sc.pendingHits.splice(0, 2);
   try {
     const t0 = Date.now();
-    const res = await post({ act: 'sync', id: profile.id, name: profile.name, skin: profile.skin, x: Math.round(p.x), y: Math.round(p.y), tr, sq: sc.sq, round: Net.round, h: sc.best, c: sc.correct, bo: sc.bo, mx: sc.maxCombo, wq: sc.wq, hit, em: sc.em ? sc.em.n : 0, emq: sc.emq, tm: profile.team | 0 });
+    const res = await post({ act: 'sync', id: profile.id, name: profile.name, skin: profile.skin, x: Math.round(p.x), y: Math.round(p.y), tr, sq: sc.sq, round: Net.round, h: sc.best, c: sc.correct, bo: sc.bo, mx: sc.maxCombo, wq: sc.wq, hit, em: sc.em ? sc.em.n : 0, emq: sc.emq, tm: profile.team | 0, gen: Net.gen | 0 });
     const t1 = Date.now();
+    if (res && res.ok && (res.kick || ((res.s && res.s.gen) | 0) !== (Net.gen | 0))) { Net.pending = false; kicked(); return; }   // 선생님이 새로 고침 → 모두 나가기
     if (res && res.ok) { takeClock(t0, t1, res.now); applySync(res, false); Net.fails = 0; if (!Net.ok) { Net.ok = true; sc.toast('📡 다시 연결됐어요!'); } }
   } catch (e) {
     sc.trail.unshift(...tr); sc.pendingHits.unshift(...hit);
@@ -661,6 +662,12 @@ async function poll() {
   }
   Net.pending = false;
   schedulePoll(1300 + Math.random() * 250);
+}
+function kicked() {
+  Net.me = null; clearTimeout(Net.timer); Net.friends.clear(); Net.rank = null; Net.fails = 0; Net.ok = true;
+  try { if (Quiz.open) Quiz.hide(); if (scene) { scene.quizBusy = false; scene.center(null); scene.endBanner = false; } } catch (e) {}
+  $('result').classList.add('hidden'); $('game').classList.add('hidden'); $('join').classList.remove('hidden');
+  $('joinBtn').disabled = false; $('joinMsg').textContent = '🧹 선생님이 방을 새로 고쳤어요. 다시 입장해 주세요!';
 }
 function applySync(res, first) {
   const prev = Net.s; Net.s = res.s; Net.n = res.n; Net.rank = res.rank || null;
@@ -1400,6 +1407,7 @@ $('tMinus').onclick = () => admin('addTime', { delta: -1 });
 $('tStart').onclick = () => { const s = tData && tData.s; if (s && s.status === 'ended' && !confirm('새 게임을 시작할까요?')) return; unlock(); admin('start'); };
 $('tEnd').onclick = () => { unlock(); if (confirm('지금 게임을 끝낼까요?')) admin('end'); };
 $('tReset').onclick = () => admin('reset');
+$('tKick').onclick = () => { if (confirm('접속한 학생을 모두 내보내고 명단을 비울까요?\n(학생들은 입장 화면으로 돌아가요)')) admin('kick'); };
 $('evGold').onclick = () => admin('event', { k: 'gold' });
 $('evMoon').onclick = () => admin('event', { k: 'moon' });
 $('evBalloon').onclick = () => admin('event', { k: 'balloon' });
