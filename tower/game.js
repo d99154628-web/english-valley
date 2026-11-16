@@ -3,7 +3,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbw5doexlj-huQ_CXWStLB-amo5l-KzKqo_fQj7I7QKIV1M9WFpFeLQrxp1XnzvazZpZ4g/exec';
 const W = 960, H = 540, ZONE_H = 1000;   // 100m 올라갈 때마다 새로운 하늘 나라
 const PHYS = { g: 1300, speed: 250, jump: 640, djump: 580, spring: 1080 };
-const GAME = { drain: 1.1, energyPer: 30, pointsPer: 30, giftRespawn: 20000, gap: 15000, gateEvery: 100 };   // 에너지는 약 90초면 바닥, 문제 사이는 최소 15초
+const GAME = { drain: 1.1, energyPer: 30, pointsPer: 30, giftRespawn: 20000, gap: 3000, gateEvery: 100 };   // 문제는 선물 상자를 먹을 때만 나옴 (정답이면 생명 +1)
 const COIN = { gift: 3, answer: 3, gate: 5 };
 const ZFX = { 1: { dark: 1 }, 3: { wind: 55 }, 6: { slip: 1 }, 8: { low: 1 }, 9: { slip: 1 }, 10: { wind: 45 }, 11: { dark: 1 }, 12: { slip: 1 }, 13: { low: 1 }, 14: { low: 1 }, 15: { wind: 40 }, 19: { wind: 70 }, 21: { slip: 1 }, 23: { low: 1 }, 27: { wind: 30 }, 37: { wind: 35 }, 38: { wind: 40 } };   // 구간 이벤트(풍경별)
 const ZFX_MSG = { 1: '🌑 어두운 밤 — 내 주변만 보여요', 3: '🌬 노을 바람 — 옆으로 밀려요', 6: '🧊 미끄러운 오로라', 8: '🪐 우주 — 몸이 가벼워요!', 9: '🧊 미끄러운 얼음 나라', 10: '🌋 화산재 바람 — 옆으로 밀려요', 11: '🔥 어두운 용암 동굴 — 내 주변만 보여요', 12: '🎄 눈 쌓인 섬 — 미끄러워요', 13: '✨ 동화나라 마법 — 몸이 가벼워요!', 14: '🫧 바닷속 — 몸이 둥실둥실!', 15: '🏜 사막 모래바람', 19: '⛈ 폭풍 구름 — 바람이 세요!', 21: '⛄ 눈사람 마을 — 미끄러워요', 23: '🌙 달나라 — 몸이 가벼워요!', 27: '👻 으스스한 바람', 29: '🪨 선사시대 — 고인돌과 움집, 빗살무늬토기', 30: '🏺 고조선 — 단군왕검이 세운 우리나라 첫 나라', 31: '👑 삼국시대 — 신라 금관과 첨성대', 32: '🍵 고려 — 아름다운 청자와 석탑', 33: '🏯 조선 — 경복궁', 34: '🔤 세종대왕이 만든 한글!', 35: '⚓ 임진왜란 — 이순신 장군의 거북선', 36: '🇰🇷 광복 — 태극기를 흔들어요', 37: '🏝 독도 — 동해의 아름다운 우리 땅 · 바람이 불어요', 38: '🍊 제주 한라산 — 바닷바람이 불어요', 39: '🌃 현대 서울 — N서울타워' };
@@ -825,10 +825,7 @@ class Scene {
     if (running) {
             const hh = heightOf(this.p.y); if (hh > this.best) { if (this.goldOn()) this.bo += hh - this.best; this.best = hh; }
       const calm = !this.quizBusy && !this.rise && !this.plummet && now - this.lastQuizAt > GAME.gap;   // 문제가 연달아 나오지 않게
-      if (!this.quizBusy && !this.plummet && !this.rise) this.energy = Math.max(0, this.energy - GAME.drain * dt);
-      const gk = Math.floor(hh / GAME.gateEvery);
-      if (calm && this.energy <= 0) this.openQuiz('⚡ 에너지가 떨어졌어요! 퀴즈로 충전!', false, true);
-      else if (calm && gk > this.gateDone) { this.gateDone = gk; this.openQuiz(`🚪 ${gk * GAME.gateEvery}m 문 퀴즈!`, true); }
+      this.gateDone = Math.max(this.gateDone, Math.floor(hh / GAME.gateEvery));   // 100m 표시선만 남김 (퀴즈 없음)
       const ev = s.ev; if (ev && ev.id !== this.evSeen) { this.evSeen = ev.id; if (sNow < ev.until) this.applyEvent(ev); }
     }
     if (now - this.trailAt > 300) { this.trailAt = now; this.sq++; this.trail.push([Math.round(this.p.x), Math.round(this.p.y), this.p.anim, this.p.flip ? 1 : 0, this.fxId()]); if (this.trail.length > 20) this.trail.shift(); }
@@ -1000,7 +997,7 @@ class Scene {
         this.correct++; this.combo++; if (this.combo > this.maxCombo) this.maxCombo = this.combo;
         const gain = gate ? COIN.gate : COIN.answer; Shop.add(gain); this.runCoins += gain;
         if (this.goldOn()) this.bo += GAME.pointsPer;
-        if (this.lives < 5) { this.lives++; this.toast('❤️ 생명 +1!', 1400); }
+        if (this.lives < 5) { this.lives++; this.toast('🎉 정답! ❤️ 생명 +1!', 1600); } else this.toast('🎉 정답! ❤️ 생명이 가득해요', 1400);
         this.energy = charge ? 100 : Math.min(100, this.energy + GAME.energyPer); if (charge) this.toast('⚡ 에너지 가득!', 1400);
         if (this.combo >= 3) this.comboFx();
       } else {
@@ -1184,7 +1181,7 @@ class Scene {
       g.strokeStyle = open ? '#fff' : '#ffd23f'; g.lineWidth = 5; g.setLineDash([16, 10]); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]);
       g.fillStyle = open ? '#9aa6d8' : '#ff8fb0'; [60, W - 60].forEach((px) => { g.fillRect(px - 5, y - 54, 10, 54); g.beginPath(); g.arc(px, y - 58, 9, 0, 7); g.fill(); });
       g.restore();
-      this.label(g, (open ? '🚪 열린 문 ' : '🚪 퀴즈 문 ') + k * GAME.gateEvery + 'm', W / 2, y - 22, open ? '#cfd6ff' : '#fff3a8');
+      this.label(g, '🚩 ' + k * GAME.gateEvery + 'm', W / 2, y - 22, open ? '#cfd6ff' : '#fff3a8');
     }
   }
   drawEmote(g, x, y, n) {
@@ -1274,7 +1271,7 @@ class Scene {
     if (s.status === 'lobby') phase = '🛝 연습 시간 · 선생님이 곧 시작해요! 마음껏 뛰어 보세요';
     else if (s.status === 'ended') { rem = 0; phase = '🏁 게임 끝'; }
     else if (countdown) { rem = s.duration * 1000; phase = '준비!'; }
-    else { rem = s.endsAt - sNow; phase = '⚡ 에너지가 떨어지면 퀴즈! 정답이면 충전 · 🎁 선물 상자 · 🎈 풍선 · 🥚 새 알'; }
+    else { rem = s.endsAt - sNow; phase = '🎁 선물 상자를 먹으면 퀴즈! 정답이면 ❤️ 생명 +1 · 🎈 풍선 · 🥚 새 알'; }
     { const ev = s.ev; if (running && ev && sNow < ev.until && ev.k !== 'balloon') phase = (ev.k === 'gold' ? '⚡ 골든타임! 점수 2배' : '🌙 달나라 중력! 둥실둥실') + ` · ${Math.ceil((ev.until - sNow) / 1000)}초`; }
     const timer = $('hudTimer');
     if (rem == null) timer.textContent = '--:--'; else { const sec = Math.max(0, Math.ceil(rem / 1000)); timer.textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; }
