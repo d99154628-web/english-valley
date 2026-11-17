@@ -729,7 +729,7 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------- 게임 장면 ---------- */
 const keys = {};
-window.addEventListener('keydown', (e) => { keys[e.code] = true; if (!e.repeat && (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW')) Scene.jumpPressed = performance.now(); });
+window.addEventListener('keydown', (e) => { keys[e.code] = true; if (!e.repeat && (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW')) { Scene.jumpPressed = performance.now(); Scene.jumpReleased = false; } });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') Scene.jumpReleased = true; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
