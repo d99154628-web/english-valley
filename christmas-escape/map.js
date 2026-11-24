@@ -1,0 +1,29 @@
+// Shared gameplay geometry, aligned to the seven v3 illustrations in 384 x 320 world units.
+const ROOM_COLS=4, ROOM_COUNT=7, ESCAPE_GOAL=21;
+const SEQUENCE=[0,1,2,3,7,6,5];
+const ART_NAMES=['manor','library','banquet','clock','greenhouse','toys','aurora'];
+const box=(x,y,w,h)=>({kind:'rect',x,y,w,h});
+const oval=(cx,cy,rx,ry)=>({kind:'ellipse',cx,cy,rx,ry});
+const poly=points=>({kind:'polygon',points});
+const ROOM_LAYOUTS=[
+ {type:'T자 현관',floors:[poly([[24,88],[360,88],[360,164],[252,164],[252,300],[132,300],[132,164],[24,164]])],obstacles:[oval(192,118,48,29)],clues:[[64,144,'book'],[312,144,'gift'],[192,264,'crystal']],portals:[{to:1,x:352,y:112,spawn:[328,112]}],spawn:[192,248]},
+ {type:'책장 사이 S자 통로',floors:[box(24,48,336,244)],obstacles:[box(82,66,36,150),box(174,103,36,159),box(266,66,36,150)],clues:[[56,232,'book'],[144,72,'gift'],[240,280,'crystal']],portals:[{to:0,x:32,y:164,spawn:[48,164]},{to:2,x:352,y:164,spawn:[336,164]}],spawn:[48,164]},
+ {type:'중앙 식탁 우회로',floors:[box(24,86,336,200)],obstacles:[box(64,112,256,104)],clues:[[192,96,'book'],[40,248,'gift'],[344,248,'crystal']],portals:[{to:1,x:32,y:164,spawn:[48,164]},{to:3,x:352,y:164,spawn:[336,164]}],spawn:[48,164]},
+ {type:'팔각형 시계탑 순환로',floors:[poly([[112,80],[272,80],[344,132],[344,216],[272,280],[112,280],[40,216],[40,132]])],obstacles:[oval(192,158,62,48),box(270,90,40,34)],clues:[[192,92,'book'],[88,224,'gift'],[288,224,'crystal']],portals:[{to:2,x:44,y:168,spawn:[72,168]},{to:4,x:192,y:268,spawn:[192,244]}],spawn:[72,168]},
+ {type:'분수와 십자형 갈림길',floors:[box(24,136,336,60),box(168,48,48,252),oval(192,166,74,65)],obstacles:[oval(192,160,44,35),box(322,144,30,22)],clues:[[192,88,'book'],[80,160,'gift'],[192,264,'crystal']],portals:[{to:3,x:192,y:56,spawn:[192,88]},{to:5,x:32,y:164,spawn:[64,164]}],spawn:[192,88]},
+ {type:'컨베이어와 작업대 미로',floors:[box(24,80,336,224)],obstacles:[box(96,88,214,32),box(80,104,40,128),box(96,202,92,30),box(132,144,60,44),box(224,144,56,40),box(236,204,102,60),box(24,270,202,34),box(330,278,30,26)],clues:[[56,248,'book'],[208,168,'gift'],[312,280,'crystal']],portals:[{to:4,x:352,y:164,spawn:[328,164]},{to:6,x:32,y:164,spawn:[56,164]}],spawn:[328,164]},
+ {type:'설원 테라스와 좁은 다리',floors:[oval(192,88,122,24),box(178,96,28,128),oval(192,252,164,44),poly([[304,224],[320,232],[366,168],[352,152]])],obstacles:[],clues:[[192,88,'book'],[80,256,'gift'],[288,256,'crystal']],portals:[{to:5,x:352,y:168,spawn:[320,232]},{to:7,x:192,y:80,exit:true}],spawn:[320,232]}
+];
+function stageAt(x,y){if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>=1536||y<0||y>=640)return -1;return SEQUENCE.indexOf(Math.floor(x/384)+Math.floor(y/320)*ROOM_COLS)}
+function roomCoords(stage){const r=SEQUENCE[stage];return{x:r%ROOM_COLS*384,y:Math.floor(r/ROOM_COLS)*320}}
+function shapeContains(shape,x,y,pad=0){if(shape.kind==='rect')return x>=shape.x-pad&&x<=shape.x+shape.w+pad&&y>=shape.y-pad&&y<=shape.y+shape.h+pad;if(shape.kind==='ellipse')return ((x-shape.cx)/(shape.rx+pad))**2+((y-shape.cy)/(shape.ry+pad))**2<=1;let inside=false;const a=shape.points;for(let i=0,j=a.length-1;i<a.length;j=i++){if((a[i][1]>y)!==(a[j][1]>y)&&x<(a[j][0]-a[i][0])*(y-a[i][1])/(a[j][1]-a[i][1])+a[i][0])inside=!inside}return inside}
+function walkableAt(x,y,maxRoom=6){const stage=stageAt(x,y);if(stage<0||stage>maxRoom)return false;const o=roomCoords(stage),lx=x-o.x,ly=y-o.y,l=ROOM_LAYOUTS[stage];return l.floors.some(s=>shapeContains(s,lx,ly))&&!l.obstacles.some(s=>shapeContains(s,lx,ly,3))}
+function spawnAt(stage){const o=roomCoords(stage),p=ROOM_LAYOUTS[stage].spawn;return{x:o.x+p[0],y:o.y+p[1]}}
+function objectsFor(stage){if(stage<0||stage>=ROOM_COUNT)return[];const o=roomCoords(stage);return ROOM_LAYOUTS[stage].clues.map(([x,y,k])=>({x:o.x+x,y:o.y+y,k}))}
+function portalsFor(stage){if(stage<0||stage>=ROOM_COUNT)return[];const o=roomCoords(stage);return ROOM_LAYOUTS[stage].portals.map(p=>({...p,x:o.x+p.x,y:o.y+p.y}))}
+function destinationFor(stage,target){if(target<0||target>=ROOM_COUNT)return null;const entry=ROOM_LAYOUTS[target].portals.find(p=>p.to===stage),o=roomCoords(target),xy=entry?.spawn||ROOM_LAYOUTS[target].spawn;return{x:o.x+xy[0],y:o.y+xy[1]}}
+function pathTo(from,tx,ty,maxRoom=6){const size=8,stage=stageAt(from.x,from.y);if(stageAt(tx,ty)!==stage)return[];const allowed=(x,y)=>stageAt(x,y)===stage&&walkableAt(x,y,maxRoom);const sx=Math.floor(from.x/size),sy=Math.floor(from.y/size);let ex=Math.floor(tx/size),ey=Math.floor(ty/size);if(!allowed(ex*size+4,ey*size+4)){const candidates=[];for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++){const xx=ex+dx,yy=ey+dy;if(allowed(xx*size+4,yy*size+4))candidates.push({x:xx,y:yy,d:Math.hypot(xx*size+4-tx,yy*size+4-ty)})}candidates.sort((a,b)=>a.d-b.d);if(!candidates.length)return[];ex=candidates[0].x;ey=candidates[0].y}const q=[[sx,sy]],prev=new Map([[sx+','+sy,null]]);let end;for(let i=0;i<q.length&&i<6000;i++){const[x,y]=q[i];if(x===ex&&y===ey){end=x+','+y;break}for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy,k=xx+','+yy;if(!prev.has(k)&&allowed(xx*size+4,yy*size+4)){prev.set(k,x+','+y);q.push([xx,yy])}}}const out=[];while(end&&prev.get(end)!==null){const[x,y]=end.split(',').map(Number);out.push({x:x*size+4,y:y*size+4});end=prev.get(end)}return out.reverse()}
+function facingFromDelta(dx,dy,last='down'){if(Math.abs(dx)+Math.abs(dy)<.01)return last;return Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up'}
+function directionFrame(team,facing,width,height){const row=team==='rudolph'?1:0,col=facing==='up'?1:facing==='left'||facing==='right'?2:0;return{sx:col*width/3,sy:row*height/2,sw:width/3,sh:height/2,flip:facing==='left'}}
+function escapeReady(correct,finalCorrect,stage){return correct>=ESCAPE_GOAL&&finalCorrect>=3&&stage===ROOM_COUNT-1}
+function atFinalExit(x,y){const p=portalsFor(ROOM_COUNT-1).find(p=>p.exit);return stageAt(x,y)===ROOM_COUNT-1&&Math.hypot(x-p.x,y-p.y)<36}
