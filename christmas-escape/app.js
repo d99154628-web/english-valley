@@ -22,6 +22,16 @@ FB.ref('.info/connected').on('value',s=>{connected=!!s.val();const c=$('conn');c
 const serverNow=()=>Date.now()+offset;
 const rid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const base=r=>FB.ref('jt/mc'+r);
+// 데이터베이스 규칙: jt/방/(st|pl|sc|ps)/키 = 48자 이하 글자. 그래서 짧은 글자로 묶어 저장한다.
+const T={santa:'s',rudolph:'r'},TT={s:'santa',r:'rudolph'};
+const encSt=s=>[s.status,s.round,s.duration,s.startAt,s.endsAt].join('|');
+const decSt=v=>{if(typeof v!=='string')return defaultSt();const[a,b,c,d,e]=v.split('|');return{status:a||'lobby',round:+b||0,duration:+c||900,startAt:+d||0,endsAt:+e||0}};
+const encPl=p=>[p.no,T[p.team]||'',String(p.nm).slice(0,14)].join('|');
+const decPl=v=>{const[a,b,...c]=String(v).split('|');return{no:+a||0,team:TT[b]||null,nm:c.join('|')}};
+const encSc=x=>[x.r||0,x.c||0,x.cur||0,x.f||0,x.e||0,x.fly?1:0].join('|');
+const decSc=v=>{const[r,c,cur,f,e,fly]=String(v).split('|').map(Number);return{r:r||0,c:c||0,cur:cur||0,f:f||0,e:e||0,fly:!!fly}};
+const mapObj=(o,fn)=>{const out={};for(const k in o||{})out[k]=fn(o[k]);return out};
+const posRef=(r,key)=>FB.ref('jt/mc'+r+'s'+key+'/ps');
 
 let room='',auth=null,isTeacher=false,st=defaultSt(),players={},scores={},watching='';
 let my={x:192,y:248,facing:'down'},keys={},path=[],moving=false,activeQuestion=null,quizLocked=false,unlocked=0,resultRound=-1,lastRound=null,localCursor=0,localCorrect=0,escapedAt=0,toastTimer,endWritten=-1;
@@ -37,22 +47,22 @@ function info(html){$('infoContent').innerHTML=html;$('infoDialog').showModal()}
 
 function unwatch(){if(!watching)return;const b=base(watching);['st','pl','sc'].forEach(k=>b.child(k).off());watchStage(null);watching='';players={};scores={};st=defaultSt();lastRound=null}
 function watch(r){if(watching===r)return;unwatch();watching=r;const b=base(r);
- b.child('st').on('value',s=>{st={...defaultSt(),...(s.val()||{})};onSession()});
- b.child('pl').on('value',s=>{players=s.val()||{};if(auth&&!isTeacher&&!players[auth.id]&&$('game').hidden===false){kicked();return}scheduleHUD()});
- b.child('sc').on('value',s=>{scores=s.val()||{};const me=auth&&scores[auth.id];if(me&&me.r===st.round){localCorrect=Math.max(localCorrect,me.c||0);localCursor=Math.max(localCursor,me.cur||0);localFinalCorrect=Math.max(localFinalCorrect,me.f||0);escapedAt=me.e||escapedAt;setUnlocked()}scheduleHUD()})}
+ b.child('st').on('value',s=>{st=decSt((s.val()||{}).g);onSession()});
+ b.child('pl').on('value',s=>{players=mapObj(s.val(),decPl);if(auth&&!isTeacher&&!players[auth.id]&&$('game').hidden===false){kicked();return}scheduleHUD()});
+ b.child('sc').on('value',s=>{scores=mapObj(s.val(),decSc);const me=auth&&scores[auth.id];if(me&&me.r===st.round){localCorrect=Math.max(localCorrect,me.c||0);localCursor=Math.max(localCursor,me.cur||0);localFinalCorrect=Math.max(localFinalCorrect,me.f||0);escapedAt=me.e||escapedAt;setUnlocked()}scheduleHUD()})}
 function kicked(){leaveGame();toast('선생님이 명단을 비웠어요. 다시 입장해 주세요.')}
 
 /* 같은 방에 있는 친구만 받아 오기(방마다 따로 저장) */
 let peers={},stageWatch=null;
 function stageKeyOf(){return flight&&!isTeacher?'fly':String(Math.max(0,stageAt(my.x,my.y)))}
-function watchStage(key){if(stageWatch&&stageWatch.key===key)return;if(stageWatch){stageWatch.ref.off()}peers={};stageWatch=null;if(key===null||!watching)return;const ref=base(watching).child('ps/'+key);stageWatch={key,ref};
+function watchStage(key){if(stageWatch&&stageWatch.key===key)return;if(stageWatch){stageWatch.ref.off()}peers={};stageWatch=null;if(key===null||!watching)return;const ref=posRef(watching,key);stageWatch={key,ref};
  const put=s=>{if(auth&&s.key===auth.id)return;const[x,y,f]=String(s.val()).split('|');const p=peers[s.key];if(p){p.tx=+x;p.ty=+y;p.facing=f}else peers[s.key]={x:+x,y:+y,tx:+x,ty:+y,facing:f,walk:0}};
  ref.on('child_added',put);ref.on('child_changed',put);ref.on('child_removed',s=>{delete peers[s.key]})}
 let pubKey=null,pubVal='',pubAt=0;
-function publishPos(force=false,reconnect=false){if(isTeacher||!auth||!watching)return;const key=stageKeyOf(),val=Math.round(my.x)+'|'+Math.round(my.y)+'|'+(my.facing||'down'),b=base(watching).child('ps');
+function publishPos(force=false,reconnect=false){if(isTeacher||!auth||!watching)return;const key=stageKeyOf(),val=Math.round(my.x)+'|'+Math.round(my.y)+'|'+(my.facing||'down'),b={child:k=>{const[a,c]=k.split('/');return posRef(watching,a).child(c)}};
  if(key!==pubKey||reconnect){if(pubKey!==null&&pubKey!==key){const old=b.child(pubKey+'/'+auth.id);old.onDisconnect().cancel();old.remove()}pubKey=key;b.child(key+'/'+auth.id).onDisconnect().remove();force=true}
  const now=performance.now();if(!force&&(val===pubVal||now-pubAt<300))return;pubVal=val;pubAt=now;b.child(key+'/'+auth.id).set(val);try{localStorage.setItem('mc-pos',JSON.stringify({id:auth.id,round:st.round,x:my.x,y:my.y,facing:my.facing}))}catch{}}
-function unpublish(){if(pubKey!==null&&auth&&watching){const r=base(watching).child('ps/'+pubKey+'/'+auth.id);r.onDisconnect().cancel();r.remove()}pubKey=null;pubVal=''}
+function unpublish(){if(pubKey!==null&&auth&&watching){const r=posRef(watching,pubKey).child(auth.id);r.onDisconnect().cancel();r.remove()}pubKey=null;pubVal=''}
 
 function setUnlocked(){const before=unlocked;unlocked=isTeacher?6:Math.min(ROOM_COUNT-1,Math.floor(localCorrect/3));if(unlocked!==before)preloadRooms()}
 function onSession(){
@@ -73,16 +83,16 @@ if(sessionStorage.getItem('mcTeacher')==='ok')$('tPass').placeholder='이미 확
 $('joinForm').onsubmit=async e=>{e.preventDefault();const btn=e.submitter||$('joinForm').querySelector('button');btn.disabled=true;$('entryError').textContent='';
  try{const r=$('grade').value+'-'+$('classNo').value,no=Number($('studentNo').value),nm=$('playerName').value.trim().replace(/\s+/g,' ');
   if(!Number.isInteger(no)||no<1||no>60)throw Error('번호를 1~60 사이의 숫자로 입력해 주세요.');if(!nm||nm.length>14)throw Error('이름을 1~14자로 입력해 주세요.');
-  const b=base(r),[pl,ss]=await Promise.all([b.child('pl').get(),b.child('st').get()]);const list=pl.val()||{},s={...defaultSt(),...(ss.val()||{})};
+  const b=base(r),[pl,ss]=await Promise.all([b.child('pl').get(),b.child('st').get()]);const list=mapObj(pl.val(),decPl),s=decSt((ss.val()||{}).g);
   let id=Object.keys(list).find(k=>Number(list[k].no)===no),team=id?list[id].team||null:null;const again=!!id;
   if(!id){id=rid();if(Object.keys(list).length>=60)throw Error('한 대기실에는 60명까지 입장할 수 있어요.')}
   if(!team&&s.status==='play'&&serverNow()<s.endsAt){let a=0,c=0;for(const k in list){if(list[k].team==='santa')a++;else if(list[k].team==='rudolph')c++}team=a<=c?'santa':'rudolph'}
-  const up={};up['pl/'+id]={no,nm,team};if(!again)up['sc/'+id]={c:0,cur:0,f:0,e:0,r:s.round};await b.update(up);
+  const up={};up['pl/'+id]=encPl({no,nm,team});if(!again)up['sc/'+id]=encSc({r:s.round});await b.update(up);
   auth={room:r,id};isTeacher=false;try{localStorage.setItem('mc-player',JSON.stringify(auth))}catch{}enter(r);if(again)toast('같은 번호로 다시 들어왔어요. 점수는 그대로예요.')}
  catch(err){$('entryError').textContent=err.message&&!/permission|network/i.test(err.message)?err.message:'연결을 확인하고 다시 눌러 주세요.'}finally{btn.disabled=false}};
 $('teacherForm').onsubmit=async e=>{e.preventDefault();if(sessionStorage.getItem('mcTeacher')!=='ok'){if($('tPass').value.trim()!==TEACHER_PASS){$('entryError').textContent='교사 비밀번호가 달라요.';return}sessionStorage.setItem('mcTeacher','ok')}$('tPass').value='';
  const r=$('tGrade').value+'-'+$('tClass').value,min=Math.max(1,Math.min(90,Math.floor(Number($('duration').value)||15)));
- try{const ref=base(r).child('st'),s=(await ref.get()).val();if(!s)await ref.set({...defaultSt(),duration:min*60});else if(s.status!=='play')await ref.update({duration:min*60})}catch{$('entryError').textContent='연결을 확인하고 다시 눌러 주세요.';return}
+ try{const ref=base(r).child('st/g'),v=(await ref.get()).val(),s=decSt(v);if(!v||s.status!=='play'||serverNow()>=s.endsAt)await ref.set(encSt({...s,status:s.status==='play'?'ended':s.status,duration:min*60}))}catch{$('entryError').textContent='연결을 확인하고 다시 눌러 주세요.';return}
  auth=null;isTeacher=true;sessionStorage.setItem('mcTeacherRoom',r);enter(r)};
 function enter(r){room=r;watch(r);$('lobby').hidden=true;$('game').hidden=false;document.body.classList.toggle('teacher',isTeacher);$('teacherPanel').hidden=!isTeacher;if(isTeacher){$('teacherCode').textContent=roomTitle(r);$('playerBadge').textContent='교사 관전 모드'}setUnlocked();preloadRooms();resize();syncFlightUI();lastUiKey='';lastMapKey='';scheduleHUD();$('world').focus()}
 function leaveGame(){stopFlight();unpublish();unwatch();auth=null;isTeacher=false;try{localStorage.removeItem('mc-player')}catch{}sessionStorage.removeItem('mcTeacherRoom');$('game').hidden=true;$('lobby').hidden=false;document.body.classList.remove('teacher');for(const d of document.querySelectorAll('dialog[open]'))d.close()}
@@ -109,12 +119,12 @@ function updateMap(){if(flight)return;const cur=Math.max(0,stageAt(my.x,my.y)),k
 
 /* ---------- 교사 명령 ---------- */
 async function teacherDo(fn){try{await fn()}catch(e){toast('연결을 확인하고 다시 눌러 주세요.')}}
-$('startBtn').onclick=()=>teacherDo(async()=>{const ids=Object.keys(players);if(!ids.length){toast('학생이 입장한 뒤 시작해 주세요.');return}for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}const round=st.round+1,at=serverNow()+4000,up={st:{status:'play',round,duration:st.duration,startAt:at,endsAt:at+st.duration*1000}};ids.forEach((id,i)=>{up['pl/'+id+'/team']=i%2?'rudolph':'santa';up['sc/'+id]={c:0,cur:0,f:0,e:0,r:round}});up.ps=null;resultRound=-1;await base(room).update(up);toast('곧 탐험이 시작됩니다!')});
-function shiftTime(delta){teacherDo(async()=>{const s=effStatus();if(s==='play'){await base(room).child('st').update({endsAt:Math.max(serverNow()+1000,st.endsAt+delta*1000)})}else if(s==='lobby'||s==='ended'){await base(room).child('st').update({duration:Math.max(60,Math.min(5400,st.duration+delta))})}})}
+$('startBtn').onclick=()=>teacherDo(async()=>{const ids=Object.keys(players);if(!ids.length){toast('학생이 입장한 뒤 시작해 주세요.');return}for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}const round=st.round+1,at=serverNow()+4000,up={'st/g':encSt({status:'play',round,duration:st.duration,startAt:at,endsAt:at+st.duration*1000})};ids.forEach((id,i)=>{up['pl/'+id]=encPl({...players[id],team:i%2?'rudolph':'santa'});up['sc/'+id]=encSc({r:round})});resultRound=-1;await base(room).update(up);toast('곧 탐험이 시작됩니다!')});
+function shiftTime(delta){teacherDo(async()=>{const s=effStatus();if(s==='play'){await base(room).child('st/g').set(encSt({...st,endsAt:Math.max(serverNow()+1000,st.endsAt+delta*1000)}))}else{await base(room).child('st/g').set(encSt({...st,status:s,duration:Math.max(60,Math.min(5400,st.duration+delta))}))}})}
 $('plusTime').onclick=()=>shiftTime(60);$('minusTime').onclick=()=>shiftTime(-60);
-$('endBtn').onclick=()=>{if(confirm('지금 게임을 종료하고 팀 결과를 볼까요?'))teacherDo(()=>base(room).child('st').update({status:'ended',endsAt:Math.min(st.endsAt,serverNow())}))};
-$('resetBtn').onclick=()=>{if(confirm('점수를 초기화하고 모든 학생을 대기실로 돌릴까요?'))teacherDo(async()=>{const round=st.round+1,up={st:{status:'lobby',round,duration:st.duration,startAt:0,endsAt:0},ps:null};for(const id in players){up['pl/'+id+'/team']=null;up['sc/'+id]={c:0,cur:0,f:0,e:0,r:round}}resultRound=-1;await base(room).update(up)})};
-$('clearRoster').onclick=()=>{if(confirm(roomTitle(room)+' 학생 명단과 점수를 모두 지울까요?'))teacherDo(async()=>{await base(room).update({pl:null,sc:null,ps:null,st:{status:'lobby',round:st.round+1,duration:st.duration,startAt:0,endsAt:0}});toast('명단을 비웠어요.')})};
+$('endBtn').onclick=()=>{if(confirm('지금 게임을 종료하고 팀 결과를 볼까요?'))teacherDo(()=>base(room).child('st/g').set(encSt({...st,status:'ended',endsAt:Math.min(st.endsAt,serverNow())})))};
+$('resetBtn').onclick=()=>{if(confirm('점수를 초기화하고 모든 학생을 대기실로 돌릴까요?'))teacherDo(async()=>{const round=st.round+1,up={'st/g':encSt({status:'lobby',round,duration:st.duration,startAt:0,endsAt:0})};for(const id in players){up['pl/'+id]=encPl({...players[id],team:null});up['sc/'+id]=encSc({r:round})}resultRound=-1;await base(room).update(up)})};
+$('clearRoster').onclick=()=>{if(confirm(roomTitle(room)+' 학생 명단과 점수를 모두 지울까요?'))teacherDo(async()=>{const up={'st/g':encSt({status:'lobby',round:st.round+1,duration:st.duration,startAt:0,endsAt:0})};for(const id in players)up['pl/'+id]=null;for(const id in scores)up['sc/'+id]=null;await base(room).update(up);toast('명단을 비웠어요.')})};
 async function copy(t){try{await navigator.clipboard.writeText(t);toast('복사했습니다.')}catch{info('<h2>복사할 내용</h2><p style="overflow-wrap:anywhere;user-select:all">'+escapeHTML(t)+'</p>')}}
 const pageURL=()=>location.origin+location.pathname;
 $('copyInvite').onclick=()=>copy(pageURL()+'?room='+room);$('studentView').onclick=()=>window.open(pageURL()+'?student=1&room='+room,'_blank');
@@ -143,9 +153,10 @@ function answer(i){if(quizLocked||!activeQuestion)return;quizLocked=true;const b
  const correct=a.order[i]===0,finalPoint=correct&&stageAt(my.x,my.y)===6?1:0;buttons.forEach((b,j)=>{if(a.order[j]===0)b.classList.add('correct')});if(!correct)buttons[i].classList.add('wrong');
  $('quizFeedback').textContent=(correct?'정답! 팀 점수 +1 ✦':'아쉽지만 괜찮아요. 정답: '+a.q.answer)+'\n'+a.q.explanation;$('quizContinue').hidden=false;
  localCursor++;if(correct)localCorrect++;localFinalCorrect+=finalPoint;const before=unlocked;setUnlocked();
- base(room).child('sc/'+auth.id).update({c:localCorrect,cur:localCursor,f:localFinalCorrect,r:st.round});
+ writeSc();
  if(unlocked>before){sound('unlock');toast('✦ 다음 방의 봉인이 풀렸어요!')}else sound(correct?'correct':'wrong');if(escapeReady(localCorrect,localFinalCorrect,stageAt(my.x,my.y))&&!escapedAt)toast('마지막 봉인이 풀렸어요! 오로라 출구로 나가면 썰매 여행이 시작돼요.');scheduleHUD()}
-$('landBtn').onclick=()=>{landFromFlight();if(auth&&!isTeacher)base(room).child('sc/'+auth.id+'/fly').set(null)};
+function writeSc(fly){if(!auth||isTeacher)return;const cur=scores[auth.id];base(room).child('sc/'+auth.id).set(encSc({r:st.round,c:localCorrect,cur:localCursor,f:localFinalCorrect,e:escapedAt,fly:fly===undefined?!!(cur&&cur.r===st.round&&cur.fly):fly}))}
+$('landBtn').onclick=()=>{landFromFlight();writeSc(false)};
 $('quizContinue').onclick=()=>{$('quizDialog').close();activeQuestion=null;$('world').focus()};$('interactBtn').onclick=openQuestion;$('mobileInteract').onclick=openQuestion;
 $('mapBtn').onclick=()=>{info('<div class="overline">THE MANOR MAP</div><h2>자정의 저택 지도</h2><p>'+escapeHTML(isTeacher?'교사 관전 모드입니다. 지도를 눌러 다른 방으로 이동할 수 있어요.':'정답 세 개마다 다음 문이 열려요. 각 공간의 문으로 다가가 E키를 누르면 다음 공간의 입구로 이어집니다.')+'</p><div class="minimap" id="largeMap">'+Array.from({length:8},(_,r)=>{const i=SEQUENCE.indexOf(r);if(i<0)return '<span></span>';return '<button data-room="'+r+'" class="map-cell '+(i<=unlocked||isTeacher?'open':'')+'" style="height:60px">'+(i+1)+'</button>'}).join('')+'</div><ol>'+ROOM_NAMES.map((n,i)=>'<li style="color:'+(i<=unlocked||isTeacher?'#edca85':'#7d929d')+'">'+n+' · '+ROOM_LAYOUTS[i].type+(i<=unlocked||isTeacher?' · 열림':' · 봉인됨')+'</li>').join('')+'</ol>');document.querySelectorAll('#largeMap button').forEach(b=>b.onclick=()=>{const r=Number(b.dataset.room);if(isTeacher){my={...spawnAt(SEQUENCE.indexOf(r)),facing:'down'};$('infoDialog').close();updateMap()}else toast('방 안의 출입문에 다가가 E키를 눌러 이동하세요.')})};
 
@@ -181,14 +192,14 @@ let portalCooldown=0,transitionAlpha=0;
 function nearPortal(){return portalsFor(stageAt(my.x,my.y)).find(p=>Math.hypot(p.x-my.x,p.y-my.y)<25)}
 function nearObject(){return objectsFor(stageAt(my.x,my.y)).find(o=>Math.hypot(o.x-my.x,o.y-my.y)<49)}
 function usePortal(){const p=nearPortal();if(!p)return false;if(Date.now()<portalCooldown)return true;const cur=stageAt(my.x,my.y);
- if(p.exit){if(escapePending)return true;if(!isTeacher&&!escapeReady(localCorrect,localFinalCorrect,cur)){portalCooldown=Date.now()+1500;toast('마지막 공간에서 '+Math.max(0,3-localFinalCorrect)+'문제를 더 맞히고 출구로 나가세요.');return true}portalCooldown=Date.now()+2000;if(isTeacher){startFlight(0,true);return true}escapedAt=escapedAt||serverNow();base(room).child('sc/'+auth.id).update({e:escapedAt,fly:1,r:st.round});startFlight(escapedAt);return true}
+ if(p.exit){if(escapePending)return true;if(!isTeacher&&!escapeReady(localCorrect,localFinalCorrect,cur)){portalCooldown=Date.now()+1500;toast('마지막 공간에서 '+Math.max(0,3-localFinalCorrect)+'문제를 더 맞히고 출구로 나가세요.');return true}portalCooldown=Date.now()+2000;if(isTeacher){startFlight(0,true);return true}escapedAt=escapedAt||serverNow();writeSc(true);startFlight(escapedAt);return true}
  if(!isTeacher&&p.to>unlocked){portalCooldown=Date.now()+1500;toast((3-localCorrect%3)+'문제를 더 맞히면 다음 공간의 문이 열려요.');return true}
  const target=destinationFor(cur,p.to);if(!target)return true;my={...target,facing:my.facing||'down'};loadArt(ART_NAMES[Math.min(6,p.to+1)]);sound('portal');keys={};path=[];portalCooldown=Date.now()+1400;transitionAlpha=.8;updateMap();publishPos(true);toast('⌖ '+ROOM_NAMES[p.to]+' · '+ROOM_LAYOUTS[p.to].type);return true}
 let lastClock='',lastUiKey='',lastCountdown='';
 function updateGameClock(){const now=serverNow(),s=effStatus();let rem=st.status==='lobby'?st.duration:Math.max(0,Math.ceil((st.endsAt-now)/1000));const txt=String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0'),key=txt+s;
  if(key!==lastClock){lastClock=key;$('clock').textContent=txt;$('statusLabel').textContent=s==='lobby'?'출발 대기':s==='ended'?'탐험 종료':'자정까지 남은 시간';document.querySelector('.clock-wrap').classList.toggle('urgent',rem<=30&&s==='play')}
  const cd=st.status==='play'&&now<st.startAt,n=cd?Math.ceil((st.startAt-now)/1000):0;if(String(n)!==lastCountdown){lastCountdown=String(n);$('countdown').hidden=!cd;if(cd)$('countdown').textContent=n}if(cd&&n!==lastAudioCountdown){lastAudioCountdown=n;sound('tick')}else if(!cd&&lastAudioCountdown>0&&s==='play'){lastAudioCountdown=-1;sound('start')}
- if(s==='ended'&&st.round>0&&resultRound!==st.round){if(isTeacher&&st.status==='play'&&endWritten!==st.round){endWritten=st.round;base(room).child('st/status').set('ended')}resultRound=st.round;scheduleHUD();showResult()}}
+ if(s==='ended'&&st.round>0&&resultRound!==st.round){if(isTeacher&&st.status==='play'&&endWritten!==st.round){endWritten=st.round;base(room).child('st/g').set(encSt({...st,status:'ended'}))}resultRound=st.round;scheduleHUD();showResult()}}
 function dialogOpen(){return $('quizDialog').open||$('infoDialog').open||$('resultDialog').open}
 function renderWorld(t,dt){const g=wg,bs=backingScale,w=world.width/bs,h=world.height/bs;g.setTransform(bs,0,0,bs,0,0);updateGameClock();if(flight){drawFlight(g,w,h,t,dt);return}
  const canMove=!escapePending&&!dialogOpen()&&(isTeacher||playing());moving=false;const previous={x:my.x,y:my.y};
