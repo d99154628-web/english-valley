@@ -174,7 +174,7 @@ for(let i=Math.max(1,Math.floor((Math.min(old,y)-80)/95));i<=Math.ceil((Math.max
 const p=platform(i);if(p.star&&!collectedStars.has(i)&&Math.abs(x-p.x)<38&&Math.max(old,y)+72>=p.y+57&&Math.min(old,y)<=p.y+83){collectedStars.add(i);starTime=15;RobotAudio.sfx('star');toast('★ 15초 동안 트리플 점프! 별을 다시 먹으면 시간이 갱신돼요.');}
 }
 highest=Math.max(highest,y);
-if(y<camera-140&&camera>0&&!fallWait){startFall();return}
+if(!grounded&&vy<0&&!fallWait&&safePlatform>1&&y<platform(safePlatform).y-260){startFall();return}
 if(y<0){y=0;vy=0;jumps=0;grounded=true;coyote=5;lastPlatform=0;safePlatform=0}
 // Keep the lift's travel visible instead of cancelling it with camera tracking.
 if(!(grounded&&platform(lastPlatform).kind==='vertical'))camera+=(Math.max(0,y-ch*.38)-camera)*.16;
