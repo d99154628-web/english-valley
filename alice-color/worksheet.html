@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>앨리스와 색깔 정원 학습지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+@page{size:A4;margin:12mm}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#e9dfe8;font-family:'Jua',sans-serif;color:#3b1636}
+.bar{position:sticky;top:0;z-index:5;display:flex;gap:10px;justify-content:center;align-items:center;padding:12px;background:#a3126a;color:#fff;font-size:18px}
+.bar button{font:inherit;font-size:20px;padding:8px 22px;border-radius:14px;border:3px solid #ffd25a;background:#fff;color:#a3126a;cursor:pointer}
+.bar small{opacity:.85}
+.page{width:210mm;min-height:297mm;margin:16px auto;background:#fff;padding:12mm;box-shadow:0 4px 20px #0003;position:relative;overflow:hidden}
+.page+.page{page-break-before:always}
+.head{display:flex;gap:14px;align-items:center;border:3px solid #ffd25a;border-radius:16px;padding:8px;background:linear-gradient(180deg,#fff6fb,#fff)}
+.head img{width:62mm;height:34.6mm;object-fit:cover;border-radius:10px;border:2px solid #f3c7e2}
+.head h1{margin:0;font-size:30px;color:#a3126a}
+.head .en{font:700 18px 'Fredoka';color:#c98a12}
+.head .meta{font-size:15px;color:#7b4c6a;margin-top:4px}
+.name{margin-top:6px;font-size:16px}
+.name span{display:inline-block;border-bottom:2px solid #b38aa8;min-width:16mm;margin:0 4px}
+.name span.w{min-width:40mm}
+h2{font-size:20px;color:#fff;background:linear-gradient(90deg,#e23e9f,#a3126a);border-radius:12px;padding:5px 14px;margin:12px 0 6px;display:flex;align-items:center;gap:8px}
+h2 .bk{margin-left:auto;font-size:13px;background:#ffd25a;color:#7a1f57;border-radius:8px;padding:2px 8px}
+.desc{font-size:15px;color:#6b4a62;margin:0 0 6px}
+.row{display:flex;gap:10px;align-items:stretch}
+.card{flex:1;border:2.5px solid #f3c7e2;border-radius:14px;padding:8px;text-align:center}
+.card .n{font-size:14px;color:#a07a95}
+.card .w{font:700 34px 'Fredoka';color:#6b2d5c;margin-top:2px}
+.card .w u{display:inline-block;width:12mm;text-decoration:none;border-bottom:3px solid #d42a8c;height:34px;vertical-align:bottom}
+.hearts{font-size:24px;letter-spacing:6px;color:#d42a8c}
+.readme{font:700 26px 'Fredoka';color:#d42a8c}
+.pixarea{display:flex;gap:14px;align-items:center}
+table.pix{border-collapse:collapse}
+table.pix td{width:7.2mm;height:7.2mm;border:1px solid #c9b4c3;text-align:center;font:600 12px 'Fredoka';color:#9a7d92}
+.legend div{font:700 20px 'Fredoka';color:#6b2d5c;margin:6px 0;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.legend i{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;color:#fff;font-style:normal;font-size:15px}
+.ans{margin-top:10px;font-size:15px}
+.ans span{display:inline-block;border-bottom:2px solid #b38aa8;min-width:40mm}
+.mix{width:100%;border-collapse:separate;border-spacing:0 6px}
+.mix td{font:700 24px 'Fredoka';color:#6b2d5c;text-align:center}
+.dot{display:inline-block;width:14mm;height:14mm;border-radius:50%;vertical-align:middle;border:2px solid #fff;box-shadow:0 0 0 2px #ddd}
+.blank{display:inline-block;width:46mm;border-bottom:3px solid #d42a8c;height:30px}
+.circle{display:inline-block;width:14mm;height:14mm;border-radius:50%;border:2.5px dashed #c9a7bd;vertical-align:middle}
+.box{font-size:13px;color:#a07a95;text-align:center}
+.qa{display:flex;gap:10px;margin:6px 0;align-items:center}
+.paint{width:30mm;height:20mm;border:2.5px dashed #c9a7bd;border-radius:12px;flex:none}
+.qa .t{font:700 22px 'Fredoka';color:#6b2d5c}
+.qa .t .blank{width:50mm}
+.diary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.diary div{border:2.5px solid #f3c7e2;border-radius:12px;padding:6px;text-align:center}
+.diary .m{font:700 26px 'Fredoka';color:#c9b4c3;letter-spacing:2px}
+.diary .line{border-bottom:2px solid #d9c3d3;height:30px;margin:4px 6px}
+.like{font:700 24px 'Fredoka';color:#6b2d5c;margin-top:10px}
+.roses{font-size:16px;margin-top:8px}
+.foot{position:absolute;bottom:8mm;left:12mm;right:12mm;font-size:12px;color:#b08ca6;text-align:center}
+.bgimg{width:100%;height:26mm;object-fit:cover;border-radius:12px;margin:6px 0}
+@media print{body{background:#fff}.bar{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:auto;height:272mm}}
+</style></head><body>
+<div class="bar"><button onclick="window.print()">🖨️ 인쇄하기 / PDF로 저장</button><small>인쇄 창에서 대상(프린터)을 「PDF로 저장」으로 고르면 PDF 파일이 돼요 · A4 2쪽</small><button onclick="history.length>1?history.back():location.href='./'">↩ 이야기로 돌아가기</button></div>
+
+<div class="page">
+  <div class="head"><img src="img/scene1.webp" alt=""><div><h1>앨리스와 색깔 정원</h1><div class="en">Alice and the Color Garden · What Color Is It?</div><div class="meta">3학년 영어 · Lesson 9 · 3차시 (교과서 108~110쪽)</div><div class="name">3학년 <span></span>반 <span></span>번 이름 <span class="w"></span></div></div></div>
+
+  <h2>🐇 1. 흰 토끼의 수수께끼 <span class="bk">Sounds Fun · Read Me</span></h2>
+  <p class="desc">토끼가 땅에 쓴 단어의 첫 글자가 지워졌어요. 잘 듣고 <b style="color:#2a7de0">l</b> 또는 <b style="color:#e0402a">r</b>을 써요.</p>
+  <div class="row"><div class="card"><div class="n">①</div><div class="w"><u></u>ike</div></div><div class="card"><div class="n">②</div><div class="w"><u></u>abbit</div></div><div class="card"><div class="n">③</div><div class="w"><u></u>ook</div></div><div class="card"><div class="n">④</div><div class="w"><u></u>ed</div></div></div>
+  <div class="row" style="margin-top:8px"><div class="card" style="display:flex;align-items:center;justify-content:space-between;text-align:left"><span class="readme">Look! Look! Rabbit! Rabbit!</span><span><span class="desc">점점 빠르게 5번 읽고 칠해요 </span><span class="hearts">♡♡♡♡♡</span></span></div></div>
+
+  <h2>🌹 2. 카드 정원사의 비밀 설계도 <span class="bk">Read and Do</span></h2>
+  <p class="desc">문장을 읽고 숫자에 맞는 색을 칠해요. 다 칠하면 무엇이 나타날까요?</p>
+  <div class="pixarea"><table class="pix" id="pix"></table>
+    <div><div class="legend"><div><i style="background:#9b4fd6">①</i>It's purple.</div><div><i style="background:#e0193c">②</i>It's red.</div><div><i style="background:#37a84a">③</i>It's green.</div><div><i style="background:#ffc928">④</i>It's yellow.</div></div>
+    <div class="ans">완성된 그림은?<br><span></span></div></div></div>
+  <div class="foot">✿ 앨리스와 색깔 정원 · 1 / 2</div>
+</div>
+
+<div class="page">
+  <h2>🎨 3. 마법 물감 섞기 <span class="bk">Write and Do</span></h2>
+  <p class="desc">두 물감을 섞으면 무슨 색이 될까요? 알맞은 단어를 쓰고, 동그라미에 그 색을 칠해요.</p>
+  <table class="mix">
+    <tr><td><span class="dot" style="background:#e0193c"></span> red</td><td>+</td><td><span class="dot" style="background:#2a63e0"></span> blue</td><td>=</td><td><span class="circle"></span> <span class="blank"></span></td></tr>
+    <tr><td><span class="dot" style="background:#ffc928"></span> yellow</td><td>+</td><td><span class="dot" style="background:#2a63e0"></span> blue</td><td>=</td><td><span class="circle"></span> <span class="blank"></span></td></tr>
+    <tr><td><span class="dot" style="background:#e0193c"></span> red</td><td>+</td><td><span class="dot" style="background:#ffc928"></span> yellow</td><td>=</td><td><span class="circle"></span> <span class="blank"></span></td></tr>
+  </table>
+  <p class="box">보기: purple · green · orange</p>
+
+  <h2>👑 4. 여왕의 질문 <span class="bk">Write and Talk · Mission 3</span></h2>
+  <p class="desc">네모에 내가 좋아하는 색을 칠하고, 그 색을 영어로 써요. 짝에게 물어보고 대답해요!</p>
+  <div class="qa"><div class="paint"></div><div class="t">A: What color is it?<br>B: It's <span class="blank"></span>.</div></div>
+  <div class="qa"><div class="paint"></div><div class="t">A: What color is it?<br>B: It's <span class="blank"></span>.</div></div>
+  <div class="qa"><div class="paint"></div><div class="t">A: What color is it?<br>B: It's <span class="blank"></span>.</div></div>
+
+  <h2>📔 5. 앨리스의 일기 · My ABC Diary</h2>
+  <p class="desc">오늘 배운 단어를 따라 쓰고, 한 번 더 써 봐요.</p>
+  <div class="diary"><div><div class="m">look</div><div class="line"></div></div><div><div class="m">like</div><div class="line"></div></div><div><div class="m">red</div><div class="line"></div></div><div><div class="m">rabbit</div><div class="line"></div></div></div>
+  <div class="like">I like <span class="blank"></span>. <span style="font:16px 'Jua';color:#7b4c6a">(내가 좋아하는 색)</span></div>
+  <div class="roses">🌹 오늘 여왕의 장미를 몇 송이 빨갛게 만들었나요? &nbsp; 1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp;&nbsp;|&nbsp; 가장 재미있었던 활동: <span style="display:inline-block;border-bottom:2px solid #b38aa8;min-width:40mm"></span></div>
+
+  <div class="foot">✿ 앨리스와 색깔 정원 · 2 / 2</div>
+</div>
+<script>
+const PIX=["110000000011","100222222001","002222222200","022222222220","022222222220","002222222200","000222222000","000003300000","033003300330","003303303300","000033330000","044444444440","004444444400","000444444000"];
+document.getElementById('pix').innerHTML=PIX.map(r=>'<tr>'+r.split('').map(c=>'<td>'+(c==='0'?'':c)+'</td>').join('')+'</tr>').join('');
+if(new URLSearchParams(location.search).has('print'))addEventListener('load',()=>setTimeout(()=>print(),600));
+</script>
+</body></html>

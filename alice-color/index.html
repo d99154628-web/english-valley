@@ -25,7 +25,9 @@ button{font-family:inherit;cursor:pointer}
 #banner.mini{min-height:96px;padding-top:30px;padding-bottom:14px}#banner.mini #say{font-size:26px}#banner.mini #en{font-size:30px}
 #banner.hide{transform:translateY(130%);opacity:0}
 #who{position:absolute;top:-26px;left:36px;background:linear-gradient(180deg,#fff8e6,#ffdf8e);color:#a3126a;border:4px solid var(--gold);border-radius:20px;padding:4px 20px;font-size:26px}
-#banner{padding-top:34px}#say{font-size:34px;line-height:1.45;text-shadow:0 2px 0 #7a0e4d}
+#banner{padding-top:34px}#replay{position:absolute;top:-24px;left:230px;background:linear-gradient(180deg,#fff8e6,#ffdf8e);color:#a3126a;border:4px solid var(--gold);border-radius:20px;padding:3px 16px;font-size:22px}
+#say.reading{text-shadow:0 0 12px #fff6,0 2px 0 #7a0e4d}
+#say{font-size:34px;line-height:1.45;text-shadow:0 2px 0 #7a0e4d}
 #en{font-family:'Fredoka',sans-serif;font-size:38px;font-weight:700;color:#fff5b8;text-shadow:0 3px 0 #7a0e4d;display:flex;align-items:center;gap:14px}
 #en:empty{display:none}
 .speak{background:#fff;border:3px solid var(--gold);border-radius:50%;width:54px;height:54px;font-size:26px;flex:none;box-shadow:0 4px 0 var(--gold2)}
@@ -120,6 +122,8 @@ button{font-family:inherit;cursor:pointer}
     <div style="display:flex;gap:12px;align-items:center"><div class="chip" id="sceneChip">표지</div><div class="chip" id="actChip" style="display:none"></div></div>
     <div id="roses"><span>여왕의 장미</span></div>
     <div id="tools">
+      <button class="tbtn" id="wsBtn" onclick="window.open('worksheet.html','_blank')">🖨️ 학습지 인쇄</button>
+      <button class="tbtn" id="autoBtn">🔊 자동 읽기 켬</button>
       <button class="tbtn tonly" id="toggleBanner" title="이야기 띠 숨기기/보이기">💬 이야기</button>
       <button class="tbtn tonly" id="studentLink">🧒 학생용 바로가기</button>
       <button class="tbtn sonly" id="teacherLink">🔑 교사용 바로가기</button>
@@ -127,13 +131,14 @@ button{font-family:inherit;cursor:pointer}
     </div>
   </div>
   <div id="panel"></div>
-  <div id="banner" class="hide"><div id="who">이야기</div><div id="say"></div><div id="en"></div>
+  <div id="banner" class="hide"><div id="who">이야기</div><button id="replay" title="다시 듣기">🔊 다시 듣기</button><div id="say"></div><div id="en"></div>
     <div id="nav"><button class="nbtn" id="prev" aria-label="이전">◀</button><button class="nbtn" id="next" aria-label="다음">▶</button></div></div>
   <div id="cover">
     <div class="info">3학년 영어 · Lesson 9 · What Color Is It? · 3차시</div>
     <h1>앨리스와 색깔 정원</h1>
     <div class="eng">Alice and the Color Garden</div>
     <button class="pbtn startbtn" id="startBtn">이야기 시작 ▶</button>
+    <button class="pbtn soft" onclick="window.open('worksheet.html','_blank')" style="font-size:26px">🖨️ 학습지 인쇄하기 (PDF)</button>
   </div>
 </div>
 <div id="pass"><form id="passForm"><div>교사용 비밀번호</div><input id="passIn" type="password" inputmode="numeric" autocomplete="off"><button class="pbtn">들어가기</button> <button type="button" class="pbtn soft" id="passX">닫기</button><div id="passMsg" style="color:#c2187a;font-size:20px;margin-top:6px"></div></form></div>
@@ -157,7 +162,14 @@ function chime(notes=[880,1175,1568],gap=.09,type='sine',vol=.12){try{const a=ac
 const sfx={ding:()=>chime([1046,1568]),win:()=>chime([784,988,1175,1568,2093],.08),page:()=>chime([660,880],.06,'triangle',.06),pop:()=>chime([520,1040],.05,'triangle',.1)};
 let voices=[];function loadVoices(){voices=speechSynthesis.getVoices()}speechSynthesis.onvoiceschanged=loadVoices;loadVoices();
 function voice(kind){const en=voices.filter(v=>/^en[-_](US|GB)/i.test(v.lang));if(kind==='girl')return en.find(v=>/female|samantha|zira|aria|jenny|google us english/i.test(v.name))||en[0];return en.find(v=>/male|daniel|david|guy|uk english male/i.test(v.name))||en[1]||en[0]}
-function speak(text,{rate=.85,pitch=1.1,who='girl'}={}){return new Promise(res=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate;u.pitch=pitch;const v=voice(who);if(v)u.voice=v;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch{res()}})}
+function speak(text,{rate=.85,pitch=1.1,who='girl',keep=false}={}){return new Promise(res=>{try{if(!keep){speechSynthesis.cancel();readToken++}const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=rate;u.pitch=pitch;const v=voice(who);if(v)u.voice=v;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch{res()}})}
+const KO_VOICE={'이야기':{pitch:1,rate:1},'앨리스':{pitch:1.3,rate:1.05},'흰 토끼':{pitch:1.6,rate:1.15},'하트 여왕':{pitch:.75,rate:.95},'카드 정원사':{pitch:1.15,rate:1.1}};
+function koVoice(){return voices.find(v=>/^ko/i.test(v.lang)&&/google/i.test(v.name))||voices.find(v=>/^ko/i.test(v.lang))}
+function speakKo(text,who){return new Promise(res=>{try{const k=KO_VOICE[who]||KO_VOICE['이야기'];const u=new SpeechSynthesisUtterance(text.replace(/["“”]/g,''));u.lang='ko-KR';u.pitch=k.pitch;u.rate=k.rate;const v=koVoice();if(v)u.voice=v;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch{res()}})}
+let autoRead=localStorage.getItem('alice-auto')!=='off',readToken=0;
+function autoUI(){$('autoBtn').textContent=autoRead?'🔊 자동 읽기 켬':'🔇 자동 읽기 끔'}autoUI();
+$('autoBtn').onclick=()=>{autoRead=!autoRead;localStorage.setItem('alice-auto',autoRead?'on':'off');autoUI();if(!autoRead){readToken++;speechSynthesis.cancel()}else readStep()};
+async function readStep(){const s=STEPS[step];if(!s)return;const my=++readToken;speechSynthesis.cancel();await new Promise(r=>setTimeout(r,350));if(my!==readToken)return;$('say').classList.add('reading');await speakKo(s.say,s.who);$('say').classList.remove('reading');if(my!==readToken||!s.en)return;await new Promise(r=>setTimeout(r,250));if(my!==readToken)return;const boy=s.enWho==='boy';await speak(s.en,{who:s.enWho||'girl',pitch:boy?.95:1.15,rate:.85,keep:true})}
 // ---------- 장미 ----------
 const ROSE_N=6;let roses=0;
 function roseSVG(red){const c=red?'#e0193c':'#fdf7fb',d=red?'#8f0a22':'#c9b4c3',h=red?'#ff6b7e':'#ffffff';return `<svg class="rose" viewBox="0 0 48 48"><path d="M24 31 C24 38 23 43 23 47" stroke="#3f8f3a" stroke-width="3" fill="none"/><path d="M23 39 c-6 -3 -10 0 -11 3 c5 2 9 0 11 -3z" fill="#5bb04f"/><path d="M24 34 C12 34 8 24 12 16 C14 10 20 8 24 10 C28 8 34 10 36 16 C40 24 36 34 24 34Z" fill="${c}" stroke="${d}" stroke-width="2"/><path d="M14 18 C18 26 30 26 34 18" fill="none" stroke="${d}" stroke-width="2"/><path d="M24 22 C20 22 19 17 22 15 C25 13 29 16 27 19" fill="none" stroke="${d}" stroke-width="2"/><circle cx="19" cy="14" r="2" fill="${h}" opacity=".8"/></svg>`}
@@ -223,7 +235,8 @@ const STEPS=[
 {bg:8,scene:'8. 색깔 정원',who:Q,say:'"모두 고맙구나! 아주 잘했어!"',en:"That's right! Thank you!",enWho:'boy'},
 {bg:8,scene:'8. 색깔 정원',who:A,say:'"오늘 배운 말을 일기에 써 둘래요!" 앨리스는 미소 지으며 집으로 돌아왔어요.',act:diaryPanel,actName:'My ABC Diary'}];
 let step=-1;
-function go(i){i=Math.max(0,Math.min(STEPS.length-1,i));const s=STEPS[i];if(i!==step)sfx.page();step=i;speechSynthesis.cancel();showBg(s.bg);$('sceneChip').textContent=s.scene;$('who').textContent=s.who;$('say').textContent=s.say;const en=$('en');en.innerHTML='';if(s.en){const b=document.createElement('button');b.className='speak';b.textContent='🔊';b.onclick=()=>speak(s.en,{who:s.enWho||'girl',pitch:s.enWho==='boy'?.95:1.15});en.append(b,document.createTextNode(s.en))}$('banner').classList.remove('hide');$('prev').disabled=i===0;$('next').disabled=i===STEPS.length-1;$('banner').classList.toggle('mini',!!s.act);if(s.act){$('actChip').style.display='';$('actChip').textContent='✏️ '+s.actName;s.act()}else{$('actChip').style.display='none';hidePanel()}}
+function go(i){i=Math.max(0,Math.min(STEPS.length-1,i));const s=STEPS[i];if(i!==step)sfx.page();step=i;speechSynthesis.cancel();showBg(s.bg);$('sceneChip').textContent=s.scene;$('who').textContent=s.who;$('say').textContent=s.say;const en=$('en');en.innerHTML='';if(s.en){const b=document.createElement('button');b.className='speak';b.textContent='🔊';b.onclick=()=>speak(s.en,{who:s.enWho||'girl',pitch:s.enWho==='boy'?.95:1.15});en.append(b,document.createTextNode(s.en))}$('banner').classList.remove('hide');$('prev').disabled=i===0;$('next').disabled=i===STEPS.length-1;$('banner').classList.toggle('mini',!!s.act);if(s.act){$('actChip').style.display='';$('actChip').textContent='✏️ '+s.actName;s.act()}else{$('actChip').style.display='none';hidePanel()}readToken++;if(autoRead)readStep()}
+$('replay').onclick=()=>readStep();
 $('next').onclick=()=>go(step+1);$('prev').onclick=()=>go(step-1);
 $('startBtn').onclick=()=>{ac();$('cover').remove();go(0);sfx.win()};
 addEventListener('keydown',e=>{if($('pass').classList.contains('on')||['INPUT'].includes(e.target.tagName))return;if(!$('cover')&&(e.key==='ArrowRight'||e.key==='PageDown')){e.preventDefault();go(step+1)}if(!$('cover')&&(e.key==='ArrowLeft'||e.key==='PageUp')){e.preventDefault();go(step-1)}if(e.key==='b'||e.key==='B')$('banner').classList.toggle('hide')});
