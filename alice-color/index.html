@@ -223,7 +223,7 @@ const N='이야기',A='앨리스',R='흰 토끼',Q='하트 여왕',C='카드 정
 const STEPS=[
 {bg:1,scene:'1. 토끼 굴',who:N,say:'따스한 오후, 꽃밭에서 놀던 앨리스 앞으로 조끼를 입은 흰 토끼가 휙 지나갔어요.'},
 {bg:1,scene:'1. 토끼 굴',who:R,say:'흰 토끼는 금시계를 보며 소리쳤어요.',en:"Look! Look! I'm late!",enWho:'boy'},
-{bg:1,scene:'1. 토끼 굴',who:A,say:'"토끼가 시계를 봐! 따라가 보자!" 앨리스는 반짝이는 토끼 굴로 쏙 들어갔어요.'},
+{bg:1,scene:'1. 토끼 굴',who:A,say:'"토끼가 시계를 봐! 따라가 보자!"'},
 {bg:2,scene:'2. 작은 황금 문',who:N,say:'굴 아래에는 찻잔과 열쇠가 둥둥 떠다니고, 작은 황금 문이 하나 있었어요. 문에는 알파벳 자물쇠가 걸려 있었지요.'},
 {bg:2,scene:'2. 작은 황금 문',who:R,say:'"A부터 Z까지 차례대로 맞춰야 열려! 빠진 글자는 네 개야!"',act:abcPanel,actName:'ABC Fun'},
 {bg:3,scene:'3. 버섯 숲',who:N,say:'문 너머는 반짝이는 버섯 숲! 흰 토끼는 노래를 부르며 달려갔어요. 노래를 따라 부르면 토끼를 놓치지 않아요.',act:chantPanel,actName:'Sounds Fun A'},
@@ -234,13 +234,13 @@ const STEPS=[
 {bg:4,scene:'4. 여왕의 장미 정원',who:C,say:'"여기 비밀 설계도가 있어. 번호대로 색을 칠하면 장미가 빨개질 거야. 도와줄래?"',act:pixelPanel,actName:'Read and Do'},
 {bg:5,scene:'5. 마법 물감 공방',who:N,say:'그런데 물감이 모자라요! 공방에는 빨강, 노랑, 파랑 세 가지 물감뿐이었어요.'},
 {bg:5,scene:'5. 마법 물감 공방',who:A,say:'"괜찮아! 섞으면 새로운 색을 만들 수 있어!"',act:mixPanel,actName:'Write and Do'},
-{bg:6,scene:'6. 여왕의 미술관',who:Q,say:'"내 미술관의 그림들이 모두 사라졌어!" 여왕이 울상을 지었어요.'},
+{bg:6,scene:'6. 여왕의 미술관',who:Q,say:'"내 미술관의 그림들이 모두 사라졌어!"'},
 {bg:6,scene:'6. 여왕의 미술관',who:Q,say:'"딱 한 장 남은 이 그림의 색깔을 말해 주면 기분이 좋아질 것 같구나."',en:'What color is it?',enWho:'boy',act:mondPanel,actName:'Write and Talk'},
 {bg:7,scene:'7. 색을 잃은 그림',who:N,say:'미술관 안쪽에는 색을 잃어버린 그림 두 점이 있었어요. 아늑한 방 그림과 별이 빛나는 밤 그림이에요.'},
 {bg:7,scene:'7. 색을 잃은 그림',who:A,say:'"우리가 좋아하는 색으로 칠해서 그림에 색을 되찾아 주자! 다 칠하면 친구에게 소개해 줘."',en:"It's blue. I like blue.",act:missionPanel,actName:'Mission 3'},
 {bg:8,scene:'8. 색깔 정원',who:N,say:'여러분 덕분에 정원의 장미가 모두 빨갛게 피어났어요! 미술관의 그림에도 알록달록 색이 돌아왔지요.'},
 {bg:8,scene:'8. 색깔 정원',who:Q,say:'"모두 고맙구나! 아주 잘했어!"',en:"That's right! Thank you!",enWho:'boy'},
-{bg:8,scene:'8. 색깔 정원',who:A,say:'"오늘 배운 말을 일기에 써 둘래요!" 앨리스는 미소 지으며 집으로 돌아왔어요.',act:diaryPanel,actName:'My ABC Diary'}];
+{bg:8,scene:'8. 색깔 정원',who:A,say:'"오늘 배운 말을 일기에 써 둘래요!"',act:diaryPanel,actName:'My ABC Diary'}];
 let step=-1;
 function go(i){i=Math.max(0,Math.min(STEPS.length-1,i));const s=STEPS[i];if(i!==step)sfx.page();step=i;speechSynthesis.cancel();showBg(s.bg);$('sceneChip').textContent=s.scene;$('who').textContent=s.who;$('say').textContent=s.say;const en=$('en');en.innerHTML='';if(s.en){const b=document.createElement('button');b.className='speak';b.textContent='🔊';b.onclick=()=>speak(s.en,{who:s.enWho||'girl',pitch:s.enWho==='boy'?.95:1.15});en.append(b,document.createTextNode(s.en))}$('banner').classList.remove('hide');$('prev').disabled=i===0;$('next').disabled=i===STEPS.length-1;$('banner').classList.toggle('mini',!!s.act);if(s.act){$('actChip').style.display='';$('actChip').textContent='✏️ '+s.actName;s.act()}else{$('actChip').style.display='none';hidePanel()}readToken++;clip('n'+String(i+2).padStart(2,'0'));if(autoRead)readStep()}
 $('replay').onclick=()=>readStep();
