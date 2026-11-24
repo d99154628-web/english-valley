@@ -48,14 +48,14 @@ const pl=R('pl');const setPl=s=>{const a=String(s.val()).split('|');plMap[s.key]
 const ps=R('ps');const setPeer=s=>{if(me&&s.key===me.id)return;const [x,y,f]=String(s.val()).split('|').map(Number);let g=ghosts.get(s.key);if(!g){g={x,y,tx:x,ty:y,flip:!!f};ghosts.set(s.key,g)}g.tx=x;g.ty=y;g.flip=!!f;g.seen=performance.now()};
 ps.on('child_added',s=>{setPeer(s);rosterChanged()});ps.on('child_changed',setPeer);ps.on('child_removed',s=>{ghosts.delete(s.key);rosterChanged()});
 const sc=R('sc');const setSc=s=>{const a=String(s.val()).split('|');scMap[s.key]={r:a[0],b:+a[1]||0,c:+a[2]||0,l:a[3]===undefined?3:+a[3],z:+a[4]||0}};sc.on('child_added',s=>{setSc(s);rosterChanged()});sc.on('child_changed',s=>{setSc(s);rosterChanged()});sc.on('child_removed',s=>{delete scMap[s.key];rosterChanged()});
-R('bb').on('value',s=>{const raw=s.val()||{};bbMap={};for(const k in raw){const a=String(raw[k]).split('|');bbMap[k]={u:+a[0]||0,by:a.slice(1).join('|')}};const mine=me&&bbMap[me.id];if(mine&&mine.u>bubbleUntil&&mode==='student'){bubbleUntil=mine.u;if(mine.by)toast(mine.by+' 친구의 비눗방울에 갇혔어요! 3초 뒤에 풀려요.')}})}
+scReady=false;sc.once('value').then(()=>{scReady=true;restoreMine()});R('bb').on('value',s=>{const raw=s.val()||{};bbMap={};for(const k in raw){const a=String(raw[k]).split('|');bbMap[k]={u:+a[0]||0,by:a.slice(1).join('|')}};const mine=me&&bbMap[me.id];if(mine&&mine.u>bubbleUntil&&mode==='student'){bubbleUntil=mine.u;if(mine.by)toast(mine.by+' 친구의 비눗방울에 갇혔어요! 3초 뒤에 풀려요.')}})}
 function updateConnection(){if(mode==='practice')setText('connection','혼자 연습 · 기록은 이 기기에 저장');else if(mode==='student'||mode==='teacher')setText('connection',connected?'실시간 연결 · '+onlineCount()+'명':'다시 연결하는 중…')}
 function onlineCount(){return Object.keys(plMap).filter(id=>ghosts.has(id)||(me&&id===me.id)).length}
 function registerMe(){if(!me||mode!=='student')return;R('pl/'+me.id).set(selectedSkin+'|'+me.no+'|'+me.name).catch(()=>{})}
 let lastPosSent='',lastPosAt=0;
 function sendPos(force){if(mode!=='student'||!me||!engine)return;const now=performance.now();if(!force&&now-lastPosAt<130)return;const v=Math.round(engine.p.x)+'|'+Math.round(engine.p.y)+'|'+(engine.p.flip?1:0);if(!force&&v===lastPosSent)return;lastPosSent=v;lastPosAt=now;const r=R('ps/'+me.id);r.set(v).catch(()=>{});if(force)r.onDisconnect().remove()}
-let lastScore='',lastScoreAt=0;
-function pushScore(force){if(mode!=='student'||!me||!engine||!st)return;const now=performance.now();if(!force&&now-lastScoreAt<800)return;const v=[st.round,engine.best,correct,lives,engine.checkpointZone].join('|');if(v===lastScore)return;lastScore=v;lastScoreAt=now;R('sc/'+me.id).set(v).catch(()=>{})}
+let lastScore='',lastScoreAt=0,scReady=false,restoredRound=null;
+function pushScore(force){if(mode!=='student'||!me||!engine||!st||!scReady)return;const now=performance.now();if(!force&&now-lastScoreAt<800)return;const v=[st.round,engine.best,correct,lives,engine.checkpointZone].join('|');if(v===lastScore)return;lastScore=v;lastScoreAt=now;R('sc/'+me.id).set(v).catch(()=>{})}
 function scoreOf(id){const s=scMap[id];return s&&st&&s.r===st.round?{best:s.b||0,correct:s.c||0}:{best:0,correct:0}}
 function roster(){return Object.entries(plMap).map(([id,p])=>{const s=scoreOf(id);return{id,name:p.name,no:p.no,skin:p.skin||0,best:s.best,correct:s.correct,score:s.best+s.correct*30,online:ghosts.has(id)||(me&&id===me.id)}}).sort((a,b)=>b.score-a.score||a.no-b.no)}
 let rosterTimer=null;
@@ -68,9 +68,9 @@ function unpackState(v){if(!v||!v.g)return null;const a=String(v.g).split('|'),b
 function curState(){return st||{status:'lobby',round:'none',seed:873421,theme:selectedTheme,duration:900,startAt:0,endsAt:0}}
 function timeOver(){const s=curState();return s.status==='play'&&serverNow()>=s.endsAt}
 function isOver(){const s=curState();return s.status==='ended'||timeOver()}
-function onState(){const s=curState();if(mode==='student'){if(lastRound!==s.round){lastRound=s.round;resetRun(s.seed,s.theme);restoreMine();resultRound=null}}
+function onState(){const s=curState();if(mode==='student'){if(lastRound!==s.round){lastRound=s.round;resetRun(s.seed,s.theme);restoredRound=null;restoreMine();resultRound=null}}
 teacherHUD();updateRanking();if(isOver()&&mode!=='practice'&&resultRound!==s.round)showResults()}
-function restoreMine(){if(!me||!st)return;const s=scMap[me.id];if(s&&s.r===st.round){engine.best=s.b||0;correct=s.c||0;lives=s.l??3;engine.checkpointZone=s.z||0;if(engine.checkpointZone>0)engine.rescue()}}
+function restoreMine(){if(!me||!st||!engine||!scReady||restoredRound===st.round)return;restoredRound=st.round;const s=scMap[me.id];if(s&&s.r===st.round){engine.best=s.b||0;correct=s.c||0;lives=s.l??3;engine.checkpointZone=s.z||0;if(engine.checkpointZone>0)engine.rescue()}}
 
 // ---------- 캐릭터·세계 고르기 ----------
 function portrait(el,id){const s=SKINS[id]||SKINS[0];el.style.backgroundImage='url('+ASSET+'/assets/'+s.atlas+'.webp)';el.style.backgroundSize='500% 200%';el.style.backgroundPosition=(s.cell%5/4*100)+'% '+(Math.floor(s.cell/5)*100)+'%'}
