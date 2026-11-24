@@ -174,7 +174,7 @@ async function readStep(){const s=STEPS[step];if(!s)return;const my=++readToken;
 // ---------- 녹음 파일 ----------
 const CLIP_EN={"Look! Look! I'm late!":'e_late',"What color is it?":'e_what',"It's blue. I like blue.":'e_like',"That's right! Thank you!":'e_right',"That's right! Thank you, everyone!":'e_right2',"Look! Look! Rabbit! Rabbit!":'readme',"It's purple.":'c_purple',"It's red.":'c_red',"It's green.":'c_green',"It's yellow.":'c_yellow',"It's blue.":'c_blue',"It's white.":'c_white',"Wow! A red rose!":'wow',"red and blue... purple!":'m_purple',"yellow and blue... green!":'m_green',"red and yellow... orange!":'m_orange',"l, l, look":'ch_look',"l, l, like":'ch_like',"r, r, red":'ch_red',"r, r, rabbit":'ch_rabbit',"look":'w_look',"like":'w_like',"red":'w_red',"rabbit":'w_rabbit',"D":'l_d',"H":'l_h',"Q":'l_q',"Y":'l_y'};
 let curAudio=null;const audioCache={};
-function clip(key){if(!audioCache[key]){const a=new Audio('audio/'+key+'.wav');a.preload='auto';audioCache[key]=a}return audioCache[key]}
+function clip(key){if(!audioCache[key]){const a=new Audio('audio/'+key+'.mp3');a.preload='auto';audioCache[key]=a}return audioCache[key]}
 function stopAudio(){if(curAudio){curAudio.pause();curAudio=null}}
 function playClip(key,rate=1){return new Promise(res=>{try{stopAudio();const a=clip(key);a.currentTime=0;a.playbackRate=rate;a.preservesPitch=false;curAudio=a;let done=false;const fin=ok=>{if(done)return;done=true;a.onended=a.onerror=null;res(ok)};a.onended=()=>fin(true);a.onerror=()=>fin(false);a.play().catch(()=>fin(false))}catch{res(false)}})}
 // ---------- 장미 ----------
