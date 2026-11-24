@@ -38,7 +38,7 @@ function setHidden(id,v){const el=$(id);if(el.hidden!==v)el.hidden=v}
 const FB=firebase.initializeApp({databaseURL:'https://jump-tower-live-default-rtdb.asia-southeast1.firebasedatabase.app'},'starlight').database();
 const SV=firebase.database.ServerValue;
 FB.ref('.info/serverTimeOffset').on('value',s=>{offset=s.val()||0});
-FB.ref('.info/connected').on('value',s=>{connected=!!s.val();updateConnection();if(connected&&mode==='student'&&me){sendPos(true);registerMe()}});
+FB.ref('.info/connected').on('value',s=>{connected=!!s.val();if(!connected)posArmed=false;updateConnection();if(connected&&mode==='student'&&me){sendPos(true);registerMe()}});
 const RK=()=>'jt/sj-'+room;const R=(p='')=>FB.ref(RK()+(p?'/'+p:''));
 let watching='';
 function unwatch(){if(!watching)return;const base=FB.ref('jt/sj-'+watching);for(const b of['st','pl','ps','sc','bb'])base.child(b).off();watching='';plMap={};scMap={};bbMap={};ghosts.clear();st=null}
@@ -52,8 +52,8 @@ scReady=false;sc.once('value').then(()=>{scReady=true;restoreMine()});R('bb').on
 function updateConnection(){if(mode==='practice')setText('connection','혼자 연습 · 기록은 이 기기에 저장');else if(mode==='student'||mode==='teacher')setText('connection',connected?'실시간 연결 · '+onlineCount()+'명':'다시 연결하는 중…')}
 function onlineCount(){return Object.keys(plMap).filter(id=>ghosts.has(id)||(me&&id===me.id)).length}
 function registerMe(){if(!me||mode!=='student')return;R('pl/'+me.id).set(selectedSkin+'|'+me.no+'|'+me.name).catch(()=>{})}
-let lastPosSent='',lastPosAt=0;
-function sendPos(force){if(mode!=='student'||!me||!engine)return;const now=performance.now();if(!force&&now-lastPosAt<130)return;const v=Math.round(engine.p.x)+'|'+Math.round(engine.p.y)+'|'+(engine.p.flip?1:0);if(!force&&v===lastPosSent)return;lastPosSent=v;lastPosAt=now;const r=R('ps/'+me.id);r.set(v).catch(()=>{});if(force)r.onDisconnect().remove()}
+let lastPosSent='',lastPosAt=0,posArmed=false;
+function sendPos(force){if(mode!=='student'||!me||!engine)return;const now=performance.now(),due=now-lastPosAt>5000;if(!force&&!due&&now-lastPosAt<130)return;const v=Math.round(engine.p.x)+'|'+Math.round(engine.p.y)+'|'+(engine.p.flip?1:0);if(!force&&!due&&v===lastPosSent)return;lastPosSent=v;lastPosAt=now;const r=R('ps/'+me.id);r.set(v).catch(()=>{});if(!posArmed){posArmed=true;r.onDisconnect().remove()}}
 let lastScore='',lastScoreAt=0,scReady=false,restoredRound=null;
 function pushScore(force){if(mode!=='student'||!me||!engine||!st||!scReady)return;const now=performance.now();if(!force&&now-lastScoreAt<800)return;const v=[st.round,engine.best,correct,lives,engine.checkpointZone].join('|');if(v===lastScore)return;lastScore=v;lastScoreAt=now;R('sc/'+me.id).set(v).catch(()=>{})}
 function scoreOf(id){const s=scMap[id];return s&&st&&s.r===st.round?{best:s.b||0,correct:s.c||0}:{best:0,correct:0}}
@@ -91,7 +91,7 @@ const rid=()=>Math.random().toString(36).slice(2,8);
 function saveSession(v){try{localStorage.setItem('sj-session',JSON.stringify(v))}catch{}}
 function loadSession(){try{return JSON.parse(localStorage.getItem('sj-session')||'null')}catch{return null}}
 $('joinForm').onsubmit=e=>{e.preventDefault();Audio2.unlock();const c=Number($('classNo').value),n=Number($('studentNo').value),name=$('studentName').value.trim();if(!c||!n||!name)return;joinStudent(String(c),{id:'n'+n,no:n,name:name.slice(0,14)})};
-function joinStudent(r,who){room=r;me=who;mode='student';saveSession({role:'student',room,me});lastRound=null;resultRound=null;cursor=Number(localStorage.getItem('sj-cursor-'+room+'-'+me.id))||0;watch();registerMe();showGame();$('myName').textContent=me.name;sendPos(true);toast(room+'반 대기실에 들어왔어요!')}
+function joinStudent(r,who){if(mode==='student'&&me&&me.id!==who.id)R('ps/'+me.id).remove().catch(()=>{});room=r;me=who;lastPosSent='';posArmed=false;mode='student';saveSession({role:'student',room,me});lastRound=null;resultRound=null;cursor=Number(localStorage.getItem('sj-cursor-'+room+'-'+me.id))||0;watch();registerMe();showGame();$('myName').textContent=me.name;sendPos(true);toast(room+'반 대기실에 들어왔어요!')}
 function checkPass(v){return String(v).trim()===TEACHER_PASS}
 $('teacherForm').onsubmit=async e=>{e.preventDefault();if(!checkPass($('tPass').value)){$('entryError').textContent='비밀번호가 맞지 않아요.';return}const c=Number($('tClass').value);if(!c)return;room=String(c);$('createBtn').disabled=true;try{await clearBranches(['pl','ps','sc','bb']);await R('st').update(packState({status:'lobby',round:rid(),seed:(Math.random()*1e9)|0,theme:selectedTheme,duration:clamp(Number($('duration').value)||15,1,90)*60,startAt:0,endsAt:0}));enterTeacher()}catch(err){$('entryError').textContent='연결 오류 · 잠시 후 다시 눌러 주세요.'}finally{$('createBtn').disabled=false}};
 $('enterBtn').onclick=()=>{if(!checkPass($('tPass').value)){$('entryError').textContent='비밀번호를 먼저 써 주세요.';return}const c=Number($('tClass').value);if(!c){$('entryError').textContent='반을 써 주세요.';return}room=String(c);enterTeacher()};
