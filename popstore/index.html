@@ -9,7 +9,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#2b1d0e;font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#3b2412}
-#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;background:#ffd43b url(img/bg.svg) center/cover no-repeat;overflow:hidden;border-radius:6px}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;background:#ffd43b url(img/bg.webp) center/cover no-repeat;overflow:hidden;border-radius:6px}
 .hidden{display:none!important}
 .screen{position:absolute;inset:0}
 button{font-family:inherit;cursor:pointer;border:none}
@@ -162,7 +162,7 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
   <div id="login" class="screen">
     <div class="panel">
       <h1><small>Lesson 11 · Do you know anything about…?</small>세계 문화 팝업 스토어</h1>
-      <div class="bottles"><img src="img/i0.svg" alt=""><img src="img/i1.svg" alt=""><img src="img/i2.svg" alt=""></div>
+      <div class="bottles"><img src="img/i0.webp" alt=""><img src="img/i1.webp" alt=""><img src="img/i2.webp" alt=""></div>
       <input id="nameIn" maxlength="8" placeholder="이름을 쓰세요" autocomplete="off">
       <button class="btn" id="joinBtn">가게 열기 <kbd>Enter</kbd></button>
       <div id="loginMsg"></div>
@@ -188,9 +188,9 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
   <!-- 게임 -->
   <div id="play" class="screen hidden">
     <div id="hud">
-      <div class="chip" id="coinChip"><img src="img/i5.svg" alt=""><span id="coins">0</span></div>
+      <div class="chip" id="coinChip"><img src="img/i5.webp" alt=""><span id="coins">0</span></div>
       <div class="chip t">🏆 <span id="rank">-</span></div>
-      <div class="chip"><img src="img/i6.svg" alt=""><span id="shield">0</span></div>
+      <div class="chip"><img src="img/i6.webp" alt=""><span id="shield">0</span></div>
       <div class="chip t">⭐ Lv.<span id="lv">1</span></div>
       <div id="spacer"></div>
       <div class="chip t">⏰ <span id="timer">0:00</span></div>
@@ -198,12 +198,12 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
     </div>
     <div id="rankBox"><h3>⭐ 오늘의 판매왕</h3><div id="topRows"></div></div>
     <div id="custs"><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
-    <div id="chestProg"><img src="img/i3.svg" alt=""><span id="pips"></span></div>
+    <div id="chestProg"><img src="img/i3.webp" alt=""><span id="pips"></span></div>
     <div id="bar">
       <div id="stock">
-        <div class="st"><img src="img/i0.svg" alt=""><b>0</b><span>약과</span></div>
-        <div class="st"><img src="img/i1.svg" alt=""><b>0</b><span>부메랑</span></div>
-        <div class="st"><img src="img/i2.svg" alt=""><b>0</b><span>논라</span></div>
+        <div class="st"><img src="img/i0.webp" alt=""><b>0</b><span>약과</span></div>
+        <div class="st"><img src="img/i1.webp" alt=""><b>0</b><span>부메랑</span></div>
+        <div class="st"><img src="img/i2.webp" alt=""><b>0</b><span>논라</span></div>
       </div>
       <button class="btn" id="quizBtn">📦 문제 풀고 물건 채우기 <kbd>Space</kbd></button>
       <button class="btn purple" id="upBtn"></button>
@@ -243,7 +243,7 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
 
   <!-- 교사 -->
   <div id="teacher" class="screen hidden">
-    <h1><img src="img/i0.svg" alt="">세계 문화 팝업 스토어 · 교사 화면
+    <h1><img src="img/i0.webp" alt="">세계 문화 팝업 스토어 · 교사 화면
       <span style="flex:1"></span>
       <button class="btn gray small" id="toStudent">🧒 학생용 바로가기</button>
     </h1>
@@ -268,7 +268,7 @@ select{font-family:inherit;font-size:22px;padding:8px;border-radius:12px;border:
   </div>
 </div>
 
-<script src="questions.js?v=1"></script>
+<script src="questions.js?v=2"></script>
 <script>
 'use strict';
 const API = 'https://script.google.com/macros/s/AKfycby-xF5iKuF5BXIo8j8sQr40-MrEl05hg2ocJadg1iU-W--fnAogWtRQA6uKBdwM2KeA/exec';
@@ -495,7 +495,7 @@ function spawn(i, delay) {
     let ch; do { ch = rnd(8); } while (used.includes(ch));
     const want = rnd(3);
     const el = document.createElement('div'); el.className = 'cust';
-    el.innerHTML = '<div class="bubble"><img src="img/i' + want + '.svg" alt="">' + DRINK[want] + ', please!<kbd>' + 'ASD'[i] + '</kbd></div><img class="ch" src="img/c' + ch + '.svg" alt="">';
+    el.innerHTML = '<div class="bubble"><img src="img/i' + want + '.webp" alt="">' + DRINK[want] + ', please!<kbd>' + 'ASD'[i] + '</kbd></div><img class="ch" src="img/c' + ch + '.webp" alt="">';
     el.onclick = () => serve(i);
     document.querySelectorAll('#custs .slot')[i].appendChild(el);
     slots[i] = { ch, want, el };
@@ -580,7 +580,7 @@ function openChest() {
   const box = $('chests'); box.textContent = '';
   for (let i = 0; i < 3; i++) {
     const b = document.createElement('button'); b.className = 'chest';
-    b.innerHTML = '<img src="img/i3.svg" alt=""><kbd>' + (i + 1) + '</kbd>';
+    b.innerHTML = '<img src="img/i3.webp" alt=""><kbd>' + (i + 1) + '</kbd>';
     b.onclick = () => pickChest(i); box.appendChild(b);
   }
   $('chModal').classList.remove('hidden');
@@ -618,9 +618,9 @@ async function pickChest(i) {
     if (S.sh > 0) { S.sh--; msg = '🛡 방패가 까마귀를 막았어요!'; snd = 'shield'; }
     else { const lost = Math.floor(S.coins * (kind === 'm50' ? .5 : .25)); S.coins -= lost; msg = '장난꾸러기 까마귀가 코인 ' + lost + '개를 물고 갔어요…'; good = false; snd = 'lose'; }
   }
-  btns[i].classList.add('open'); btns[i].querySelector('img').src = 'img/i4.svg';
+  btns[i].classList.add('open'); btns[i].querySelector('img').src = 'img/i4.webp';
   $('chTitle').textContent = good ? '🎉 상자를 열었어요!' : '앗!';
-  res.className = good ? 'good' : 'bad'; res.innerHTML = '<img src="img/' + icon + '.svg" alt=""><span></span>';
+  res.className = good ? 'good' : 'bad'; res.innerHTML = '<img src="img/' + icon + '.webp" alt=""><span></span>';
   res.querySelector('span').textContent = msg;
   sfx(snd); render(); save(); sync();
   setTimeout(() => { if (modal === 'chest') closeModals(); }, 2300);
@@ -706,7 +706,7 @@ $('toStudent').onclick = () => { clearInterval(tTimer); PWD = ''; show('login');
 /* ---------- 시작 ---------- */
 load();
 if (S.name) $('nameIn').value = S.name;
-['bg.svg'].concat([0, 1, 2, 3, 4, 5, 6, 7].flatMap(i => ['c' + i + '.svg', 'i' + i + '.svg'])).forEach(f => { const im = new Image(); im.src = 'img/' + f; });
+['bg.webp'].concat([0, 1, 2, 3, 4, 5, 6, 7].flatMap(i => ['c' + i + '.webp', 'i' + i + '.webp'])).forEach(f => { const im = new Image(); im.src = 'img/' + f; });
 if (location.hash === '#teacher') { $('pwBox').classList.remove('hidden'); }
 loopSync();
 </script>
