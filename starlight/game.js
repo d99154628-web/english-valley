@@ -24,6 +24,7 @@ let correct=0,lives=3,coins=0,cursor=0,reviveNeeded=false,rescueBusy=false,quizB
 let particles=[],ghosts=new Map(),plMap={},scMap={},bbMap={};
 let cam={x:0,y:-600},view={w:960,h:640,scale:1},previousTheme=0,visualTheme=-1,bgFade=1,frameAt=0,countN=-1,landAt=-1e6,landPower=0,takeoffAt=-1e6,fallSoundAt=-1e6;
 let bubbleUntil=0,bubbleReadyAt=0,wasFrozen=false,practiceFriend=null,platformHits=new Map(),toastTimer;
+let lastPosSent='',lastPosAt=0,posArmed=false,lastScore='',lastScoreAt=0,scReady=false,restoredRound=null;
 const serverNow=()=>Date.now()+offset;
 const isTeacher=()=>mode==='teacher',practice=()=>mode==='practice';
 
@@ -52,9 +53,9 @@ scReady=false;sc.once('value').then(()=>{scReady=true;restoreMine()});R('bb').on
 function updateConnection(){if(mode==='practice')setText('connection','혼자 연습 · 기록은 이 기기에 저장');else if(mode==='student'||mode==='teacher')setText('connection',connected?'실시간 연결 · '+onlineCount()+'명':'다시 연결하는 중…')}
 function onlineCount(){return Object.keys(plMap).filter(id=>ghosts.has(id)||(me&&id===me.id)).length}
 function registerMe(){if(!me||mode!=='student')return;R('pl/'+me.id).set(selectedSkin+'|'+me.no+'|'+me.name).catch(()=>{})}
-let lastPosSent='',lastPosAt=0,posArmed=false;
+
 function sendPos(force){if(mode!=='student'||!me||!engine)return;const now=performance.now(),due=now-lastPosAt>5000;if(!force&&!due&&now-lastPosAt<130)return;const v=Math.round(engine.p.x)+'|'+Math.round(engine.p.y)+'|'+(engine.p.flip?1:0);if(!force&&!due&&v===lastPosSent)return;lastPosSent=v;lastPosAt=now;const r=R('ps/'+me.id);r.set(v).catch(()=>{});if(!posArmed){posArmed=true;r.onDisconnect().remove()}}
-let lastScore='',lastScoreAt=0,scReady=false,restoredRound=null;
+
 function pushScore(force){if(mode!=='student'||!me||!engine||!st||!scReady)return;const now=performance.now();if(!force&&now-lastScoreAt<800)return;const v=[st.round,engine.best,correct,lives,engine.checkpointZone].join('|');if(v===lastScore)return;lastScore=v;lastScoreAt=now;R('sc/'+me.id).set(v).catch(()=>{})}
 function scoreOf(id){const s=scMap[id];return s&&st&&s.r===st.round?{best:s.b||0,correct:s.c||0}:{best:0,correct:0}}
 function roster(){return Object.entries(plMap).map(([id,p])=>{const s=scoreOf(id);return{id,name:p.name,no:p.no,skin:p.skin||0,best:s.best,correct:s.correct,score:s.best+s.correct*30,online:ghosts.has(id)||(me&&id===me.id)}}).sort((a,b)=>b.score-a.score||a.no-b.no)}
