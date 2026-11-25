@@ -86,8 +86,10 @@ function resetGame(){lastStage=0;starTime=0;collectedStars=new Set();bodyStretch
 // Fixed 60 Hz physics: a firm takeoff, faster falling, and a momentum-aware air impulse.
 const JUMP_PHYSICS={takeoff:14.5,riseGravity:.70,fallGravity:1.05,maxFall:22,airImpulse:12.2,airCarry:.35,minAir:10.8,maxAir:15.8};
 function jump(){if(!canMove()||quizOpen||paused||fallWait)return;jumpBuffer=6}
+const needCharge=()=>!practicing()&&energy<=10&&grounded&&!rescue&&!platform(lastPlatform).spring;
 function applyJump(){
 if(jumpBuffer<=0)return;
+if(!practicing()&&energy<=10){if(needCharge()){jumpBuffer=0;openQuestion()}return}
 if(grounded||coyote>0){vy=JUMP_PHYSICS.takeoff;jumps=1;RobotAudio.sfx('jump');bodyStretch=-.13;bodyVelocity=.095}
 else if(jumps<(starTime>0?3:2)){vy=Math.max(JUMP_PHYSICS.minAir,Math.min(JUMP_PHYSICS.maxAir,vy*JUMP_PHYSICS.airCarry+JUMP_PHYSICS.airImpulse));jumps++;if(jumps===3){vy=Math.max(vy,15.5);tripleFx=performance.now();toast('★ 트리플 점프!')}RobotAudio.sfx(jumps===3?'triple':'double');bodyStretch=-.09;bodyVelocity=.12}
 else return;
@@ -211,6 +213,7 @@ for(let i=Math.max(1,Math.floor((Math.min(old,y)-80)/95));i<=Math.ceil((Math.max
 const p=platform(i);if(p.star&&!collectedStars.has(i)&&Math.abs(x-p.x)<38&&Math.max(old,y)+72>=p.y+57&&Math.min(old,y)<=p.y+83){collectedStars.add(i);starTime=15;RobotAudio.sfx('star');toast('★ 15초 동안 트리플 점프! 별을 다시 먹으면 시간이 갱신돼요.');}
 }
 highest=Math.max(highest,y);
+if(needCharge())openQuestion();
 if(!rescue&&!grounded&&vy<0&&safePlatform>1&&y<platform(safePlatform).y-260)startFall();
 if(rescue&&(y>=platform(rescue.i).y-5||(grounded&&performance.now()>rescue.until)))clearRescue();else if(rescue)rescueTip();
 if(y<0){y=0;vy=0;jumps=0;grounded=true;coyote=5;lastPlatform=0;safePlatform=0}
