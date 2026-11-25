@@ -30,3 +30,5 @@
 #rescueTip{position:fixed;left:50%;top:92px;transform:translateX(-50%);z-index:40;max-width:min(760px,92vw);padding:12px 20px;border-radius:14px;background:rgba(40,28,14,.92);border:2px solid #e3b76a;color:#ffe9b8;font-size:18px;text-align:center;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.45);animation:pop .3s}
 #rescueTip b{color:#ffd98b;background:#5a3e18;padding:1px 8px;border-radius:6px}
 #rescueTip small{display:block;font-size:14px;opacity:.85;margin-top:3px}
+#qImg{display:block;width:150px;height:150px;object-fit:contain;margin:6px auto 10px;background:#fff8e8;border-radius:16px;padding:8px;border:2px solid #e3b76a}
+#qImg.hidden{display:none}
