@@ -54,7 +54,7 @@ setInterval(()=>{if(player&&playing())pushScore()},1500);
 let lastPosSent='',lastPosAt=0;
 function sendPos(force){if(!player)return;const v=Math.round(x)+'|'+Math.round(y);const now=Date.now();if(!force&&(v===lastPosSent||now-lastPosAt<140))return;lastPosSent=v;lastPosAt=now;const r=ref('ps',player);r.set(v).catch(()=>{});if(force)r.onDisconnect().remove()}
 let joinedAt=0;
-function kicked(){const was=player;player='';joinedAt=0;trail=[];peers.clear();show('quiz',false);show('paused',false);show('fallen',false);fallWait=false;show('countdown',false);screen('lobby');if(was)toast('선생님이 새로 고침했어요. 다시 입장해 주세요.')}
+function kicked(){const was=player;player='';joinedAt=0;trail=[];peers.clear();show('quiz',false);show('paused',false);show('fallen',false);clearRescue();fallWait=false;show('countdown',false);screen('lobby');if(was)toast('선생님이 새로 고침했어요. 다시 입장해 주세요.')}
 
 function screen(name){for(const id of ['lobby','teacher','waiting','login','finished'])show(id,false);show('hud',name==='play'||name==='waiting');show('footer',name==='lobby');show('touchControls',name==='play');show('practiceBanner',name==='play'&&practicing());show('liveRanks',name==='play');show('gameTeacher',name==='play'||name==='finished');show('gameLeave',name==='play');if($(name))show(name);mode=name}
 $('teacherOpen').onclick=()=>{if(token){room=$('tGrade').value+'-'+$('tClass').value;screen('teacher');watch();renderTeacher()}else show('login')};$('loginBack').onclick=()=>show('login',false);
@@ -81,7 +81,7 @@ let starTime=0,collectedStars=new Set();
 let bodyStretch=0,bodyVelocity=0,bodyLean=0;
 let grounded=true,coyote=5,jumpBuffer=0,landingSquash=0;
 let x=550,y=0,vy=0,jumps=0,highest=0,camera=0,lastPlatform=0,keys={},particles=[];
-function resetGame(){lastStage=0;starTime=0;collectedStars=new Set();bodyStretch=0;bodyVelocity=0;bodyLean=0;grounded=true;coyote=5;jumpBuffer=0;landingSquash=0;x=550;y=0;vy=0;jumps=0;highest=0;camera=0;lastPlatform=0;boxSerial=0;bonus=0;solved=0;tried=0;lives=3;energy=100;worldTime=0;quizOpen=false;paused=false;fallWait=false;show('quiz',false);show('paused',false);show('fallen',false)}
+function resetGame(){lastStage=0;starTime=0;collectedStars=new Set();bodyStretch=0;bodyVelocity=0;bodyLean=0;grounded=true;coyote=5;jumpBuffer=0;landingSquash=0;x=550;y=0;vy=0;jumps=0;highest=0;camera=0;lastPlatform=0;boxSerial=0;bonus=0;solved=0;tried=0;lives=3;energy=100;worldTime=0;safePlatform=0;quizOpen=false;paused=false;fallWait=false;show('quiz',false);show('paused',false);show('fallen',false);clearRescue();clearRescue()}
 
 // Fixed 60 Hz physics: a firm takeoff, faster falling, and a momentum-aware air impulse.
 const JUMP_PHYSICS={takeoff:14.5,riseGravity:.70,fallGravity:1.05,maxFall:22,airImpulse:12.2,airCarry:.35,minAir:10.8,maxAir:15.8};
@@ -94,7 +94,7 @@ else return;
 energy=Math.max(0,energy-(jumps>=2?3:2));grounded=false;coyote=0;jumpBuffer=0;landingSquash=0;
 }
 
-addEventListener('keydown',e=>{if(mode!=='play'||e.target.matches('input,select,textarea'))return;if(fallWait){if(e.code==='Enter'||e.code==='NumpadEnter'){e.preventDefault();respawn()}else if(e.code==='Space')e.preventDefault();return}if(['ArrowLeft','ArrowRight','ArrowUp','Space','KeyA','KeyD','KeyW'].includes(e.code)){e.preventDefault();keys[e.code]=true;if(!e.repeat&&['Space','ArrowUp','KeyW'].includes(e.code))jump()}});addEventListener('keyup',e=>{keys[e.code]=false});addEventListener('blur',()=>{keys={};jumpBuffer=0});
+addEventListener('keydown',e=>{if(mode!=='play'||e.target.matches('input,select,textarea'))return;if(rescue&&!quizOpen&&!paused&&(e.code==='Enter'||e.code==='NumpadEnter')){e.preventDefault();respawn();return}if(['ArrowLeft','ArrowRight','ArrowUp','Space','KeyA','KeyD','KeyW'].includes(e.code)){e.preventDefault();keys[e.code]=true;if(!e.repeat&&['Space','ArrowUp','KeyW'].includes(e.code))jump()}});addEventListener('keyup',e=>{keys[e.code]=false});addEventListener('blur',()=>{keys={};jumpBuffer=0});
 for(const b of document.querySelectorAll('[data-key]')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys[b.dataset.key]=true;if(b.dataset.key==='Space')jump()};b.onpointerup=b.onpointercancel=()=>keys[b.dataset.key]=false}
 $('pause').onclick=()=>{paused=true;keys={};show('paused')};$('resume').onclick=()=>{paused=false;show('paused',false)};
 function platform(i,time=worldTime){
@@ -105,15 +105,14 @@ return{x:baseX+(kind==='horizontal'?Math.sin(phase)*55:0),y:baseY+(kind==='verti
 }
 
 /* ---------- 떨어졌을 때: Enter → 생명 1개 → 원래 자리로 ---------- */
-let safePlatform=0;
-function startFall(){fallWait=true;keys={};jumpBuffer=0;vy=0;RobotAudio.sfx('fall');
-$('fallText').textContent=lives>0?'Enter를 누르면 생명 1개(♥ '+lives+' → '+(lives-1)+')를 쓰고 마지막으로 서 있던 발판으로 돌아가요.':'생명이 없어요. Enter를 누르면 바닥에서 다시 출발해요. 점수는 그대로예요!';
-$('respawn').textContent=lives>0?'Enter · 원래 자리로 ↑':'Enter · 바닥에서 다시 출발';show('fallen')}
-function respawn(){if(!fallWait)return;fallWait=false;show('fallen',false);keys={};
-if(lives>0){lives--;const i=Math.max(0,safePlatform),p=platform(i);x=p.x;y=p.y;lastPlatform=i;toast('♥ 생명 1개를 쓰고 원래 자리로 돌아왔어요!')}
-else{x=550;y=0;lastPlatform=0;toast('바닥에서 다시 출발! 점수는 유지돼요.')}
-vy=0;jumps=0;grounded=true;coyote=5;jumpBuffer=0;bodyStretch=-.2;bodyVelocity=.1;camera=Math.max(0,y-ch*.38);RobotAudio.sfx('spring')}
-$('respawn').onclick=respawn;
+let safePlatform=0,rescue=null;
+function startFall(){rescue={i:safePlatform,until:performance.now()+8000};RobotAudio.sfx('fall');rescueTip();show('rescueTip')}
+function rescueTip(){const t=$('rescueTip');let h;if(practicing())h='⬇ 떨어지는 중! <b>Enter</b> = 떨어진 발판으로 돌아가기 <small>(연습이라 생명을 안 써요)</small>';else if(lives>0)h='⬇ 떨어지는 중! <b>Enter</b> = 생명 1개 쓰고(♥ '+lives+' → '+(lives-1)+') 떨어진 발판으로 <small>· 안 누르면 생명을 아끼고 아래 발판에서 다시 올라가요</small>';else h='⬇ 생명이 없어요. 아래 발판에서 다시 올라가요! <small>문제를 맞히면 생명 +1</small>';if(t.innerHTML!==h)t.innerHTML=h}
+function clearRescue(){rescue=null;if($('rescueTip'))show('rescueTip',false)}
+function respawn(){if(!rescue||quizOpen||paused)return;const free=practicing();if(!free){if(lives<=0)return;lives--}
+const i=rescue.i,p=platform(i);clearRescue();keys={};x=p.x;y=p.y;lastPlatform=i;safePlatform=i;
+vy=0;jumps=0;grounded=true;coyote=5;jumpBuffer=0;bodyStretch=-.2;bodyVelocity=.1;camera=Math.max(0,y-ch*.38);RobotAudio.sfx('spring');toast(free?'떨어진 발판으로 돌아왔어요!':'♥ 생명 1개를 쓰고 떨어진 발판으로 돌아왔어요!')}
+$('respawn').onclick=respawn;$('rescueTip').onclick=respawn;
 
 /* ---------- 문제 (게임 안에서 바로 냄) ---------- */
 let deck=[],curQ=null;
@@ -124,7 +123,7 @@ $('continue').onclick=()=>{quizOpen=false;show('quiz',false);keys={}};
 addEventListener('keydown',e=>{if(!quizOpen||mode!=='play')return;const k={Digit1:0,Digit2:1,Digit3:2,KeyA:0,KeyB:1,KeyC:2,Numpad1:0,Numpad2:1,Numpad3:2}[e.code];if(k!==undefined){const b=$('options').children[k];if(b&&!b.disabled)answer(b)}else if((e.code==='Enter'||e.code==='Space')&&!$('continue').classList.contains('hidden')){e.preventDefault();$('continue').click()}});
 
 /* ---------- 게임 끝: 팡파레 + 순위 ---------- */
-function finish(){if(finishRun===run)return;finishRun=run;finalRows=rows.map(r=>({...r})).sort((a,b)=>(b.height+b.bonus)-(a.height+a.bonus));quizOpen=false;paused=false;fallWait=false;keys={};jumpBuffer=0;show('quiz',false);show('paused',false);show('fallen',false);show('countdown',false);screen('finished');const me=finalRows.find(r=>r.id===player);if(me){highest=Math.max(highest,me.height*10);bonus=Math.max(bonus,me.bonus);solved=Math.max(solved,me.ok)}const myRank=me?rankAt(finalRows.indexOf(me),finalRows):0;$('finalScore').innerHTML=(Math.floor(highest/10)+bonus)+'<small>POINTS'+(myRank?' · '+myRank+'등 / '+finalRows.length+'명':'')+'</small>';$('finalDetail').textContent=`최고 ${Math.floor(highest/10)}m · 정답 ${solved}개 · 다음 출발 신호를 기다려요`;
+function finish(){if(finishRun===run)return;finishRun=run;finalRows=rows.map(r=>({...r})).sort((a,b)=>(b.height+b.bonus)-(a.height+a.bonus));quizOpen=false;paused=false;fallWait=false;keys={};jumpBuffer=0;show('quiz',false);show('paused',false);show('fallen',false);clearRescue();show('countdown',false);screen('finished');const me=finalRows.find(r=>r.id===player);if(me){highest=Math.max(highest,me.height*10);bonus=Math.max(bonus,me.bonus);solved=Math.max(solved,me.ok)}const myRank=me?rankAt(finalRows.indexOf(me),finalRows):0;$('finalScore').innerHTML=(Math.floor(highest/10)+bonus)+'<small>POINTS'+(myRank?' · '+myRank+'등 / '+finalRows.length+'명':'')+'</small>';$('finalDetail').textContent=`최고 ${Math.floor(highest/10)}m · 정답 ${solved}개 · 다음 출발 신호를 기다려요`;
 $('top3').replaceChildren();finalRows.slice(0,3).forEach((r,i)=>{const el=document.createElement('div');el.className='place p'+(i+1);const m=document.createElement('b');m.textContent=['🥇','🥈','🥉'][i];const rb=document.createElement('div');rb.className='robot';sprite(rb,r.robot);const n=document.createElement('span');n.textContent=r.name.replace(/^\d+번\s*/,'');const s=document.createElement('small');s.textContent=(r.height+r.bonus)+'점';el.append(m,rb,n,s);$('top3').append(el)});
 $('podium').replaceChildren();finalRows.forEach((r,i)=>{if(i<3)return;const el=document.createElement('div');el.className='podium-row'+(r.id===player?' me':'');const a=document.createElement('span'),b=document.createElement('span');a.textContent=rankAt(i,finalRows)+'위 '+r.name;b.textContent=(r.height+r.bonus)+'점';el.append(a,b);$('podium').append(el)});
 RobotAudio.fanfare();confetti(4500)}
@@ -178,7 +177,7 @@ ctx.strokeStyle='#9fece95a';ctx.lineWidth=1;for(let i=0;i<35;i++){ctx.beginPath(
 if(mode==='lobby'||mode==='teacher'){ctx.fillStyle='#081c1b55';ctx.fillRect(0,0,cw,ch)}
 }
 
-let prev=0,acc=0;function loop(ms){const dt=Math.min((ms-prev)/1000||0,.05);prev=ms;RobotAudio.lower(quizOpen||paused||fallWait||mode==='teacher');ctx.setTransform(canvas.width/cw,0,0,canvas.height/ch,0,0);multiplayerFrame(ms);drawBackground(ms/1000);if(['play','waiting','finished'].includes(mode)){if(canMove()&&!quizOpen&&!paused&&!fallWait){acc+=dt;while(acc>=1/60&&!quizOpen&&!fallWait){update();acc-=1/60}if(practicing()){energy=100;bonus=0;solved=0;tried=0}else if(energy<=10)openQuestion()}else acc=0;drawWorld(ms/1000);$('height').innerHTML=Math.floor(highest/10)+' <i>m</i>';$('score').textContent=practicing()?'연습':Math.floor(highest/10)+bonus;$('lives').textContent='♥ '.repeat(lives)+'♡ '.repeat(Math.max(0,5-lives));$('clock').textContent=practicing()?'연습 중':timeString(remaining());$('starPower').textContent=starTime>0?'★ 트리플 점프 '+Math.ceil(starTime)+'초':'☆ 별을 먹으면 15초 트리플 점프';$('starPower').classList.toggle('active',starTime>0);$('next').textContent=connected?'에너지 '+Math.ceil(energy)+'% · 10% 이하에서 문제':'연결 복구 중 · 잠시 대기';$('energyFill').style.width=energy+'%';$('energyTrack').setAttribute('aria-valuenow',String(Math.ceil(energy)));$('energyTrack').classList.toggle('low',energy<=30);$('biome').textContent=String(worldIndex()+1).padStart(2,'0')+' · '+biomes[worldIndex()].name;}if(mode==='teacher')$('tClock').textContent=timeString(remaining());requestAnimationFrame(loop)}
+let prev=0,acc=0;function loop(ms){const dt=Math.min((ms-prev)/1000||0,.05);prev=ms;RobotAudio.lower(quizOpen||paused||fallWait||mode==='teacher');ctx.setTransform(canvas.width/cw,0,0,canvas.height/ch,0,0);multiplayerFrame(ms);drawBackground(ms/1000);if(['play','waiting','finished'].includes(mode)){if(canMove()&&!quizOpen&&!paused&&!fallWait){acc+=dt;while(acc>=1/60&&!quizOpen&&!fallWait){update();acc-=1/60}if(practicing()){energy=100;bonus=0;solved=0;tried=0}else if(energy<=10)openQuestion()}else acc=0;drawWorld(ms/1000);$('height').innerHTML=Math.floor(highest/10)+' <i>m</i>';$('score').textContent=practicing()?'연습':Math.floor(highest/10)+bonus;$('lives').textContent=practicing()?'♥ 연습 무제한':'♥ '.repeat(lives)+'♡ '.repeat(Math.max(0,5-lives));$('clock').textContent=practicing()?'연습 중':timeString(remaining());$('starPower').textContent=starTime>0?'★ 트리플 점프 '+Math.ceil(starTime)+'초':'☆ 별을 먹으면 15초 트리플 점프';$('starPower').classList.toggle('active',starTime>0);$('next').textContent=connected?'에너지 '+Math.ceil(energy)+'% · 10% 이하에서 문제':'연결 복구 중 · 잠시 대기';$('energyFill').style.width=energy+'%';$('energyTrack').setAttribute('aria-valuenow',String(Math.ceil(energy)));$('energyTrack').classList.toggle('low',energy<=30);$('biome').textContent=String(worldIndex()+1).padStart(2,'0')+' · '+biomes[worldIndex()].name;}if(mode==='teacher')$('tClock').textContent=timeString(remaining());requestAnimationFrame(loop)}
 function update(){
 const P=JUMP_PHYSICS;
 const previousTime=worldTime;worldTime=playing()?Math.max(0,(serverNow()-state.starts)/1000):worldTime+1/60;starTime=Math.max(0,starTime-1/60);energy=Math.max(0,energy-.2/60);
@@ -212,7 +211,8 @@ for(let i=Math.max(1,Math.floor((Math.min(old,y)-80)/95));i<=Math.ceil((Math.max
 const p=platform(i);if(p.star&&!collectedStars.has(i)&&Math.abs(x-p.x)<38&&Math.max(old,y)+72>=p.y+57&&Math.min(old,y)<=p.y+83){collectedStars.add(i);starTime=15;RobotAudio.sfx('star');toast('★ 15초 동안 트리플 점프! 별을 다시 먹으면 시간이 갱신돼요.');}
 }
 highest=Math.max(highest,y);
-if(!grounded&&vy<0&&!fallWait&&safePlatform>1&&y<platform(safePlatform).y-260){startFall();return}
+if(!rescue&&!grounded&&vy<0&&safePlatform>1&&y<platform(safePlatform).y-260)startFall();
+if(rescue&&(y>=platform(rescue.i).y-5||(grounded&&performance.now()>rescue.until)))clearRescue();else if(rescue)rescueTip();
 if(y<0){y=0;vy=0;jumps=0;grounded=true;coyote=5;lastPlatform=0;safePlatform=0}
 // Keep the lift's travel visible instead of cancelling it with camera tracking.
 if(!(grounded&&platform(lastPlatform).kind==='vertical'))camera+=(Math.max(0,y-ch*.38)-camera)*.16;
@@ -256,7 +256,7 @@ function renderRanks(){const out=$('rankList');out.replaceChildren();rows.filter
 function multiplayerFrame(ms){if(mode!=='play')return;const now=serverNow();show('practiceBanner',practicing());const countdown=state&&state.status==='running'&&now<state.starts;show('countdown',!!countdown);if(countdown){$('countNumber').textContent=Math.ceil((state.starts-now)/1000);keys={};jumpBuffer=0}else if(playing()&&!roundReady){roundReady=true;resetGame();trail=[];lastScore='';toast('출발!');RobotAudio.sfx('correct')}
 if(ms-lastSample>=70&&player){lastSample=ms;sendPos(false)}
 }
-function leaveGame(){removeMe();player='';peers.clear();trail=[];show('quiz',false);show('paused',false);show('fallen',false);fallWait=false;show('countdown',false);screen('lobby')}
+function leaveGame(){removeMe();player='';peers.clear();trail=[];show('quiz',false);show('paused',false);show('fallen',false);clearRescue();fallWait=false;show('countdown',false);screen('lobby')}
 $('gameLeave').onclick=leaveGame;
 $('gameTeacher').onclick=()=>window.open('index.html?teacher=1','_blank','noopener');
 for(const [id,delta] of [['addMinute',60],['subtractMinute',-60]])$(id).onclick=async()=>{try{const now=serverNow();await writeState(s=>s.status==='running'&&now<s.ends?{...s,ends:Math.max(now+5000,s.ends+delta*1000)}:null);toast(delta>0?'1분 늘렸어요.':'1분 줄였어요.')}catch(e){toast('연결 오류 · 다시 눌러 주세요.')}};
