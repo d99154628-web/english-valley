@@ -573,6 +573,67 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------- 게임 장면 ---------- */
 const keys = {};
+
+/* ---------- 🛍 게임 중 상점 (B 키 또는 상점 버튼) ---------- */
+const GShop = {
+  el: null, open: false,
+  items: [
+    { id: 'life', ic: '❤️', name: '생명 +1', note: '최대 5개', p: 30 },
+    { id: 'bal', ic: '🎈', name: '풍선', note: '둥실 떠올라요', p: 25 },
+    { id: 'wing', ic: '🪽', name: '날개', note: '4초 동안 슝~', p: 40 },
+    { id: 't1', ic: '✨', name: '별가루 꼬리', note: '한 번 사면 계속', p: 40, tr: 1 },
+    { id: 't2', ic: '💗', name: '하트 꼬리', note: '한 번 사면 계속', p: 40, tr: 2 },
+    { id: 't3', ic: '🌈', name: '무지개 꼬리', note: '한 번 사면 계속', p: 60, tr: 3 },
+  ],
+  build() {
+    const d = document.createElement('div'); d.id = 'gshop'; d.className = 'hidden';
+    d.innerHTML = '<div class="box"><h3><span>🛍 말랑 상점</span><span><span data-c></span> <button class="x" data-x>닫기 (B)</button></span></h3><div class="sub">모은 코인으로 바로 사서 써요. 게임은 계속 진행돼요!</div><div class="items"></div><div class="msg"></div></div>';
+    $('game').append(d); this.el = d;
+    const box = d.querySelector('.items');
+    for (const it of this.items) { const b = document.createElement('button'); b.type = 'button'; b.className = 'it'; b.tabIndex = -1; b.dataset.id = it.id; b.innerHTML = `${it.ic} ${it.name}<small>${it.note}</small><b></b>`; b.onclick = () => this.buy(it); box.append(b); }
+    d.querySelector('[data-x]').onclick = () => this.toggle(false);
+    d.addEventListener('mousedown', (e) => { if (e.target === d) this.toggle(false); });
+  },
+  refresh() {
+    if (!this.el) return;
+    this.el.querySelector('[data-c]').textContent = `🪙 ${Shop.coins}`;
+    for (const b of this.el.querySelectorAll('.it')) {
+      const it = this.items.find((x) => x.id === b.dataset.id), owned = it.tr && (Shop.trails.has(it.tr) || Shop.free);
+      b.querySelector('b').textContent = it.tr ? (Shop.trail === it.tr ? '사용 중' : owned ? '바꾸기' : `🪙 ${it.p}`) : `🪙 ${it.p}`;
+      b.classList.toggle('on', !!it.tr && Shop.trail === it.tr);
+      b.classList.toggle('no', !owned && Shop.coins < it.p);
+    }
+  },
+  msg(t) { if (this.el) this.el.querySelector('.msg').textContent = t; },
+  toggle(on) {
+    if (!scene || !scene.started) return;
+    if (on === undefined) on = !this.open;
+    if (on && (Quiz.open || scene.quizBusy)) return;
+    if (!this.el) this.build();
+    this.open = on; this.el.classList.toggle('hidden', !on);
+    for (const k in keys) keys[k] = false;
+    if (on) { this.msg(''); this.refresh(); sfx('gift'); }
+  },
+  buy(it) {
+    const sc = scene, owned = it.tr && (Shop.trails.has(it.tr) || Shop.free);
+    if (it.tr && owned) { Shop.trail = Shop.trail === it.tr ? 0 : it.tr; Shop.save(); sfx('gift'); this.msg(Shop.trail ? `${it.ic} 꼬리 효과를 켰어요!` : '꼬리 효과를 껐어요'); this.refresh(); return; }
+    if (Shop.coins < it.p) { sfx('wrong'); this.msg(`🪙 코인이 ${it.p - Shop.coins}개 더 필요해요`); return; }
+    if (it.id === 'life' && sc.lives >= 5) { sfx('wrong'); this.msg('❤️ 생명이 이미 가득해요'); return; }
+    if ((it.id === 'bal' || it.id === 'wing') && (sc.rise || sc.plummet || sc.retry || sc.frozen)) { sfx('wrong'); this.msg('지금은 쓸 수 없어요. 판 위에서 다시 해 보세요'); return; }
+    Shop.coins -= it.p; Shop.save(); sfx('correct');
+    if (it.tr) { Shop.trails.add(it.tr); Shop.trail = it.tr; Shop.save(); this.msg(`🎉 ${it.name}를 샀어요!`); this.refresh(); return; }
+    this.toggle(false);
+    if (it.id === 'life') { sc.lives++; sc.toast('❤️ 생명 +1!', 1400); }
+    else if (it.id === 'bal') { sc.bal = { t: 0 }; sc.wing = null; sc.jumps = 1; sc.toast('🎈 풍선으로 둥실둥실~', 1500); }
+    else if (it.id === 'wing') { sc.wing = { t: 0 }; sc.bal = null; sc.toast('🪽 날개 장착! 슝~', 1500); }
+  },
+};
+$('shopBtn').onclick = (e) => { e.currentTarget.blur(); GShop.toggle(); };
+window.addEventListener('keydown', (e) => {   // 상점이 열려 있으면 게임 조작을 막아요
+  if (e.code === 'KeyB' && !e.repeat && !Quiz.open && document.activeElement && document.activeElement.tagName !== 'INPUT') { GShop.toggle(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (GShop.open) { if (e.code === 'Escape') GShop.toggle(false); e.stopImmediatePropagation(); e.preventDefault(); }
+}, true);
+
 window.addEventListener('keydown', (e) => { keys[e.code] = true; if (!e.repeat && (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW')) { Scene.jumpPressed = performance.now(); Scene.jumpReleased = false; } });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW') Scene.jumpReleased = true; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
@@ -862,6 +923,7 @@ class Scene {
   }
   burst(x, y, n) { for (let i = 0; i < n; i++) this.puffs.push({ x, y, vx: (Math.random() - 0.5) * 180, vy: -Math.random() * 120, l: 0.4 }); }
   openQuiz(tag, gate, charge) {
+    if (GShop.open) GShop.toggle(false);
     if (this.quizBusy || !QS.length) return;
     this.quizBusy = true; this.p.vx = 0;
     Quiz.show(tag, (ok) => {
