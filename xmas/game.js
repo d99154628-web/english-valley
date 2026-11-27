@@ -1246,11 +1246,31 @@ function startPodium(top) {
 $('reviewBtn').onclick = () => $('review').classList.toggle('hidden');
 
 /* ---------- 교사 화면 ---------- */
-let tpw = sessionStorage.getItem('xm_pw') || '', tTimer = null;
+let tpw = sessionStorage.getItem('xm_pw2') || '', tTimer = null;
+function pwDialog() {   // 비밀번호는 ●●●● 로 가려서 입력 (친구가 옆에서 못 보게)
+  return new Promise((done) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(20,8,30,.6);display:flex;align-items:center;justify-content:center;font-family:inherit';
+    wrap.innerHTML = '<form style="background:#fffaf5;border:4px solid #e24a4a;border-radius:18px;padding:22px 24px;min-width:300px;box-shadow:0 0 0 6px #2f8a5a,0 18px 50px rgba(0,0,0,.4);color:#3a2350">'
+      + '<div style="font-weight:800;font-size:18px;margin-bottom:12px">👩‍🏫 교사용 비밀번호</div>'
+      + '<input type="password" autocomplete="new-password" style="width:100%;box-sizing:border-box;font-size:20px;padding:10px 12px;border:2px solid #e7b4b8;border-radius:10px;letter-spacing:3px">'
+      + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" data-x style="padding:8px 14px;border-radius:10px;border:0;background:#eee;font-weight:700">취소</button>'
+      + '<button type="submit" style="padding:8px 16px;border-radius:10px;border:0;background:#c8343f;color:#fff;font-weight:800">들어가기</button></div>'
+      + '<div data-m style="color:#c8343f;font-size:14px;margin-top:8px;min-height:18px"></div></form>';
+    document.body.append(wrap);
+    const f = wrap.querySelector('form'), inp = wrap.querySelector('input');
+    const close = (v) => { wrap.remove(); done(v); };
+    inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') close(null); });
+    inp.addEventListener('keyup', (e) => e.stopPropagation());
+    wrap.querySelector('[data-x]').onclick = () => close(null);
+    f.onsubmit = (e) => { e.preventDefault(); close(inp.value); };
+    setTimeout(() => inp.focus(), 30);
+  });
+}
 async function askTeacher() {
-  const pw = prompt('교사용 비밀번호를 입력하세요');
-  if (pw == null) return;
-  try { const r = await post({ act: 'login', pw }); if (!r.ok) return alert('비밀번호가 틀렸어요.'); tpw = pw; sessionStorage.setItem('xm_pw', pw); openTeacher(); }
+  const pw = await pwDialog();
+  if (!pw) return;
+  try { const r = await post({ act: 'login', pw }); if (!r.ok) return alert('비밀번호가 틀렸어요.'); tpw = pw; sessionStorage.setItem('xm_pw2', pw); openTeacher(); }
   catch (e) { alert('서버에 연결하지 못했어요.'); }
 }
 $('tBtn').onclick = askTeacher; $('tBtn2').onclick = () => { if (tpw) openTeacher(); else askTeacher(); };
