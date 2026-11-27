@@ -185,9 +185,9 @@ function buildZone(seed, z) {
   if (zoneCache.size > 200) zoneCache.clear(); zoneCache.set(key, out); return out;
 }
 
-/* ---------- 캐릭터: 말랑 크리스마스 친구 59종 (구글 플로우로 만든 그림, mallang.webp 8칸 × 8줄) ---------- */
+/* ---------- 캐릭터: 말랑 크리스마스 친구 59종 (구글 플로우 원본에서 깨끗하게 잘라 낸 그림, mallang2.webp 160px × 8칸) ---------- */
 const NSKIN = 59, JELLY0 = 0;
-const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; SHEET.src = 'mallang.webp?v=1';
+const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk = true; if (typeof refreshPreviews === 'function') refreshPreviews(); }; SHEET.src = 'mallang2.webp?v=1';
 const OUT = '#8a5646';
 const hasJong = (n) => { const c = String(n).charCodeAt(String(n).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0; };
 const iga = (n) => n + (hasJong(n) ? '이' : '가'), eulreul = (n) => n + (hasJong(n) ? '을' : '를');
@@ -208,7 +208,7 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. 말랑말
   g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s, s);
   g.transform(1, 0, Math.max(-0.35, Math.min(0.35, bv * 0.02)), 1, 0, 0); g.scale(sx, sy);
   if (o.anim === 2) g.rotate(Math.sin(t * 14) * 0.06);
-  g.drawImage(SHEET, (k % 8) * 128, ((k / 8) | 0) * 128, 128, 128, -D / 2, -D + 1, D, D);
+  g.drawImage(SHEET, (k % 8) * 160, ((k / 8) | 0) * 160, 160, 160, -D / 2, -D + 1, D, D);
   g.restore();
 }
 function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); g.clearRect(0, 0, 64, 64); drawChar(g, skin, 32, 62, { t: 0, anim: 0, scale: 1.05 }); }
