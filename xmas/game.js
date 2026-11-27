@@ -425,6 +425,7 @@ function refreshShop() {
   [...grid.children].forEach((b) => { const i = +b.dataset.i; b.classList.toggle('sel', i === skin); b.classList.toggle('locked', !Shop.has(i)); b.querySelector('.lock').textContent = Shop.has(i) ? '' : '🔒' + Shop.price(i); });
   [...$('trailRow').children].forEach((b) => { const k = +b.dataset.k; b.classList.toggle('sel', k === Shop.trail); b.querySelector('i').textContent = k === 0 || Shop.trails.has(k) || Shop.free ? '' : ' 🪙' + b.dataset.p; });
   [...$('teamRow').children].forEach((b) => b.classList.toggle('sel', +b.dataset.k === (profile.team | 0)));
+  { const hf = document.querySelector('.hero-friend'); if (hf) { const k = ((skin % NSKIN) + NSKIN) % NSKIN; hf.style.backgroundPosition = `${((k % 8) * 100 / 7).toFixed(3)}% ${(((k / 8) | 0) * 100 / 7).toFixed(3)}%`; hf.animate && hf.animate([{ transform: 'scale(.9,1.08)' }, { transform: 'scale(1.06,.94)' }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' }); } }   // 왼쪽 큰 그림도 고른 말랑이로
 }
 const armBuy = (id, text) => { buyArm = id; setMsg(text); sfx('pop'); setTimeout(() => { if (buyArm === id) { buyArm = -1; setMsg(''); } }, 3500); };
 const SKORDER = Array.from({ length: NSKIN }, (_, i) => i);
