@@ -19,7 +19,7 @@ let RES = 1, LOWQ = false;   // LOWQ: 느린 크롬북이면 자동으로 가벼
 function fit() {
   stageEl.style.setProperty('--u', (stageEl.clientWidth / 960).toFixed(3));
   const r = Math.min(LOWQ ? 1 : 1.25, Math.max(1, Math.round((stageEl.clientWidth * (window.devicePixelRatio || 1) / 960) * 4) / 4));   // 선명하게: 화면 크기에 맞춰 해상도 올림
-  if (r !== RES || cv.width !== Math.round(960 * r)) { RES = r; cv.width = Math.round(960 * RES); cv.height = Math.round(540 * RES); for (const k in SPR) delete SPR[k]; skyCache.length = 0; PLATC.clear(); LABELC.clear(); for (const k in bgState) delete bgState[k]; }
+  if (r !== RES || cv.width !== Math.round(960 * r)) { RES = r; cv.width = Math.round(960 * RES); cv.height = Math.round(540 * RES); for (const k in SPR) delete SPR[k]; skyCache.length = 0; PLATC.clear(); LABELC.clear(); CHC.clear(); for (const k in bgState) delete bgState[k]; }
 }
 window.addEventListener('resize', fit);
 
@@ -191,7 +191,7 @@ const SHEET = new Image(); let sheetOk = false; SHEET.onload = () => { sheetOk =
 const OUT = '#8a5646';
 const hasJong = (n) => { const c = String(n).charCodeAt(String(n).length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0; };
 const iga = (n) => n + (hasJong(n) ? '이' : '가'), eulreul = (n) => n + (hasJong(n) ? '을' : '를');
-const SH = {}, GRD = {};
+const SH = {}, GRD = {}, CHC = new Map();
 function shade(hex, a) {   // 색을 밝게(+)/어둡게(-)
   const k = hex + a; if (SH[k]) return SH[k];
   const n = parseInt(hex.slice(1), 16), f = (c) => Math.max(0, Math.min(255, Math.round(a >= 0 ? c + (255 - c) * a : c * (1 + a))));
@@ -205,10 +205,12 @@ function drawChar(g, skin, x, y, o) {   // (x,y)=발 바닥 가운데. 말랑말
   const bs = Math.max(-0.5, Math.min(0.5, o.bs || 0)), bv = o.bv || 0; sy *= 1 + bs; sx *= 1 - bs * 0.85;
   if (o.anim === 2) { sx *= 0.94; sy *= 1.07; } else if (o.anim === 3) { sx *= 1.05; sy *= 0.96; }
   const hop = run ? Math.abs(Math.sin(t * 8)) * 3 : 0, D = 58;
-  g.save(); g.translate(x, y - hop); g.scale((o.flip ? -1 : 1) * s, s);
+  const L = Math.round(D * s), key = k + '|' + L; let spr = CHC.get(key);   // 캐릭터를 미리 알맞은 크기로 줄여 두고 그대로 찍기 (렉 방지)
+  if (!spr) { spr = mk(L, L, (q) => { q.imageSmoothingQuality = 'high'; q.drawImage(SHEET, (k % 8) * 160, ((k / 8) | 0) * 160, 160, 160, 0, 0, L, L); }); if (CHC.size > 200) CHC.clear(); CHC.set(key, spr); }
+  g.save(); g.translate(x, y - hop); if (o.flip) g.scale(-1, 1);
   g.transform(1, 0, Math.max(-0.35, Math.min(0.35, bv * 0.02)), 1, 0, 0); g.scale(sx, sy);
   if (o.anim === 2) g.rotate(Math.sin(t * 14) * 0.06);
-  g.drawImage(SHEET, (k % 8) * 160, ((k / 8) | 0) * 160, 160, 160, -D / 2, -D + 1, D, D);
+  g.drawImage(spr, -L / 2, -L + 1, L, L);
   g.restore();
 }
 function previewSkin(canvas, skin) { canvas.width = 64; canvas.height = 64; const g = canvas.getContext('2d'); g.clearRect(0, 0, 64, 64); drawChar(g, skin, 32, 62, { t: 0, anim: 0, scale: 1.05 }); }
@@ -490,7 +492,7 @@ async function poll() {
   if (Net.pending) { schedulePoll(500); return; }
   Net.pending = true;
   const sc = scene, p = sc.p;
-  const tr = sc.trail.splice(0, sc.trail.length).slice(-8), hit = sc.pendingHits.splice(0, 2);
+  const tr = sc.trail.splice(0, sc.trail.length).slice(-10), hit = sc.pendingHits.splice(0, 2);
   try {
     const t0 = Date.now();
     const res = await post({ act: 'sync', id: profile.id, name: profile.name, skin: profile.skin, x: Math.round(p.x), y: Math.round(p.y), tr, sq: sc.sq, round: Net.round, h: sc.best, c: sc.correct, bo: sc.bo, mx: sc.maxCombo, wq: sc.wq, hit, em: sc.em ? sc.em.n : 0, emq: sc.emq, tm: profile.team | 0, gen: Net.gen | 0 });
@@ -502,7 +504,7 @@ async function poll() {
     if (++Net.fails === 3) { Net.ok = false; sc.toast('📡 연결이 불안해요… 다시 연결하는 중', 3500); }
   }
   Net.pending = false;
-  schedulePoll(1300 + Math.random() * 250);
+  schedulePoll(2400 + Math.random() * 500);   // 친구 위치는 2.4~2.9초마다 (서버·크롬북 부담 줄이기, 렉 방지)
 }
 function kicked() {
   Net.me = null; clearTimeout(Net.timer); Net.friends.clear(); Net.rank = null; Net.fails = 0; Net.ok = true;
@@ -521,7 +523,7 @@ function applySync(res, first) {
     const k = Math.min(Math.max(0, sq - f.lastSq), (tr || []).length);
     if (k > 0) { tr.slice(tr.length - k).forEach((s) => f.q.push({ x: s[0], y: s[1], a: s[2], f: s[3], e: s[4] | 0 })); f.lastSq = sq; }
     else if (!f.q.length && (Math.abs(f.cur.x - x) > 40 || Math.abs(f.cur.y - y) > 40)) { f.q.push({ x, y, a: 0, f: f.cur.f }); }
-    if (f.q.length > 14) f.q.splice(0, f.q.length - 6);
+    if (f.q.length > 26) f.q.splice(0, f.q.length - 12);
   }
   for (const id of [...Net.friends.keys()]) if (!seen.has(id)) Net.friends.delete(id);
   Net.aw = res.aw || null;
@@ -886,20 +888,25 @@ class Scene {
     this.superUntil = performance.now() + 1100; this.bs = 0.3; this.bv = 14; this.shake = 0.12;
     this.burst(p.x, p.y, 18); sfx('super'); this.toast('🚀 슈퍼 점프! ⚡ 에너지 가득 · ❤️ +1', 1800);
   }
-  updateFriends(dt) {
+  updateFriends(dt) {   // 친구는 받은 길을 0.3초 간격으로 천천히 따라가요 (새 물건을 만들지 않아 가벼움)
+    const lite = LOWQ;
     for (const f of Net.friends.values()) {
-      const q = f.q;
-      f.bv = (f.bv || 0) + (-(f.bs || 0) * 420 - (f.bv || 0) * 5.2) * dt; f.bs = (f.bs || 0) + f.bv * dt;
-      if (q.length) {
-        const speed = 1 + Math.max(0, q.length - 5) * 0.35;
-        f.prog += dt / 0.3 * speed;
-        while (f.prog >= 1 && q.length) { const pa = f.from.a; f.from = { ...q[0] }; q.shift(); f.prog -= 1; if (!q.length) f.prog = 0; if (f.from.a === 2 && pa !== 2) { f.bs = 0.12; f.bv = 9; } else if (pa === 3 && f.from.a < 2) { f.bs = -0.5; f.bv = 0; } }
-        if (q.length) {
-          const a = f.from, b = q[0];
-          if (Math.abs(b.x - a.x) > 300 || Math.abs(b.y - a.y) > 300) { f.cur = { x: b.x, y: b.y, a: b.a, f: b.f, e: b.e }; f.from = { ...b }; f.prog = 0; q.shift(); }
-          else f.cur = { x: a.x + (b.x - a.x) * f.prog, y: a.y + (b.y - a.y) * f.prog, a: b.a, f: b.f, e: b.e };
-        } else f.cur = { ...f.from };
+      const q = f.q, c = f.cur;
+      if (!lite) { f.bv = (f.bv || 0) + (-(f.bs || 0) * 420 - (f.bv || 0) * 5.2) * dt; f.bs = (f.bs || 0) + f.bv * dt; } else { f.bs = 0; f.bv = 0; }
+      if (!q.length) continue;
+      const speed = 1 + Math.max(0, q.length - 10) * 0.3;
+      f.prog += dt / 0.3 * speed;
+      while (f.prog >= 1 && q.length) {
+        const pa = f.from.a, n = q.shift(); f.from.x = n.x; f.from.y = n.y; f.from.a = n.a; f.from.f = n.f; f.from.e = n.e; f.prog -= 1; if (!q.length) f.prog = 0;
+        if (n.a === 2 && pa !== 2) { f.bs = 0.12; f.bv = 9; } else if (pa === 3 && n.a < 2) { f.bs = -0.5; f.bv = 0; }
       }
+      const a = f.from;
+      if (q.length) {
+        const b = q[0];
+        if (Math.abs(b.x - a.x) > 300 || Math.abs(b.y - a.y) > 300) { a.x = b.x; a.y = b.y; a.a = b.a; a.f = b.f; a.e = b.e; f.prog = 0; q.shift(); c.x = a.x; c.y = a.y; }
+        else { c.x = a.x + (b.x - a.x) * f.prog; c.y = a.y + (b.y - a.y) * f.prog; }
+        c.a = b.a; c.f = b.f; c.e = b.e;
+      } else { c.x = a.x; c.y = a.y; c.a = a.a; c.f = a.f; c.e = a.e; }
     }
   }
   /* ----- 그리기 ----- */
@@ -930,8 +937,11 @@ class Scene {
     this.drawGates(g, cam);
     let lead = 0; for (const fr of Net.friends.values()) lead = Math.max(lead, fr.score || 0);
     const myScore = this.best + this.correct * GAME.pointsPer, meCrown = s.status === 'play' && myScore > 0 && myScore >= lead; if (!(s.status === 'play')) lead = 0; else if (meCrown) lead = Math.max(lead, myScore);
-    for (const fr of Net.friends.values()) {
-      const c = fr.cur; if (c.y < cam - 80 || c.y > cam + H + 80) continue;
+    const VIS = this.visBuf || (this.visBuf = []); VIS.length = 0;
+    for (const fr of Net.friends.values()) { const c = fr.cur; if (c.y >= cam - 80 && c.y <= cam + H + 80) VIS.push(fr); }
+    if (VIS.length > 16) { const my = p.y; VIS.sort((a, b) => Math.abs(a.cur.y - my) - Math.abs(b.cur.y - my)); VIS.length = 16; }   // 한 화면에 최대 16명까지만 그려 렉 방지
+    for (const fr of VIS) {
+      const c = fr.cur;
       const crowned = lead > 0 && fr.score === lead;
       for (const off of (c.x < 50 ? [0, W] : c.x > W - 50 ? [0, -W] : [0])) {
         if (c.e === 2) this.drawWings(g, c.x + off, c.y, this.t + fr.x);
