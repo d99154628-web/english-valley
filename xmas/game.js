@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-const API = 'https://script.google.com/macros/s/AKfycbwsG56siCMnKxM0IHbAOzOzUUGX73jM2hmo7KUtOcEEzPtZCG7h6q8L-wFFNaam-rgi0A/exec';   // 말랑 크리스마스 점프 타워 전용 서버 (Apps Script)
+const API = (window.__API || 'https://script.google.com/macros/s/AKfycbwsG56siCMnKxM0IHbAOzOzUUGX73jM2hmo7KUtOcEEzPtZCG7h6q8L-wFFNaam-rgi0A/exec');   // 말랑 크리스마스 점프 타워 전용 서버 (Apps Script)
 const W = 960, H = 540, ZONE_H = 1000;   // 100m 올라갈 때마다 새로운 하늘 나라
 const PHYS = { g: 1300, speed: 250, jump: 640, djump: 580, spring: 1080 };
 const GAME = { drain: 3.4, energyPer: 30, pointsPer: 30, giftRespawn: 20000, gap: 2500, gateEvery: 100, superV: 1250, wrongE: 35 };   // ⚡ 에너지가 0이 되면 퀴즈 (약 30초마다) — 정답: 에너지 가득 + 🚀슈퍼 점프 + ❤️
@@ -814,15 +814,16 @@ class Scene {
         }
       }
     }
-    // 받침 없이 멀리 떨어지면 슈웅~ 바닥까지!
-    if (!p.ground && p.vy > 300 && !this.frozen && !this.bal && !this.wing && this.lastGroundY < -250 && p.y > this.lastGroundY + 460 && !this.platBelow(190)) {
+    // 바로 밑에 받침이 없으면 곧바로 슈웅~ 바닥까지! (옆으로 조금 비껴 착지할 수 있는 판은 받침으로 봐 줌)
+    if (!p.ground && p.vy > 160 && !this.frozen && !this.bal && !this.wing && !this.rise && p.y < -140 && !this.platBelow(560, 60)) {
       this.plummet = { ox: this.lastGroundX, oy: this.lastGroundY, v: Math.max(p.vy, 800) };
       sfx('whoosh'); this.fallFx = 1; this.whooshed = true; this.toast('슈웅~ 바닥까지!', 1500); p.vx = 0; p.anim = 3;
     }
   }
-  platBelow(d) {   
-    const p = this.p, z = zoneOf(p.y);
-    for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) for (const pl of buildZone(Net.s.seed, zz).plats) if (pl.y >= p.y && pl.y - p.y < d && p.x + 15 > platX(pl) && p.x - 15 < platX(pl) + pl.w) return true;
+  platBelow(d, m) {   // 아래 d 안에 (좌우 m 여유) 받침이 있나?
+    const p = this.p, z = zoneOf(p.y); m = m || 15;
+    for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) for (const pl of buildZone(Net.s.seed, zz).plats) if (pl.y >= p.y - 4 && pl.y - p.y < d && !(pl.cr && this.crGone(pl)) && p.x + m > platX(pl) && p.x - m < platX(pl) + pl.w) return true;
+    for (let zz = Math.max(0, z - 1); zz <= z + 1; zz++) for (const sp of buildZone(Net.s.seed, zz).springs) if (sp.y >= p.y - 4 && sp.y - p.y < d && Math.abs(sp.x - p.x) < m + 18) return true;
     return false;
   }
   stepPlummet(dt) {
@@ -934,7 +935,7 @@ class Scene {
       const crowned = lead > 0 && fr.score === lead;
       for (const off of (c.x < 50 ? [0, W] : c.x > W - 50 ? [0, -W] : [0])) {
         if (c.e === 2) this.drawWings(g, c.x + off, c.y, this.t + fr.x);
-        g.globalAlpha = 0.86; drawChar(g, fr.skin, c.x + off, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25, bs: (fr.bs || 0) + (c.a === 3 ? 0.08 : 0), bv: fr.bv || 0 }); g.globalAlpha = 1;
+        g.globalAlpha = 1; drawChar(g, fr.skin, c.x + off, c.y, { t: this.t + fr.x, anim: c.a, flip: !!c.f, scale: 1.25, bs: (fr.bs || 0) + (c.a === 3 ? 0.08 : 0), bv: fr.bv || 0 }); g.globalAlpha = 1;
         if (c.e === 1) this.drawBalloon(g, c.x + off, c.y, this.t + fr.x);
         if (crowned) this.drawCrown(g, c.x + off, c.y - 50, this.t);
       }
